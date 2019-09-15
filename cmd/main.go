@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
 	"strings"
 
@@ -17,12 +16,12 @@ func main() {
 	flag.Parse()
 
 	if *displayHelp {
-		fmt.Println(`
+		log.Println(`
 				-h                      > show this message
 				-logfile=<logFileName>  > output log file name
 				-loglvl=<logLevel>	> set log level
 			`)
-		fmt.Println()
+		log.Println()
 		return
 	}
 

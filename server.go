@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func routerSetup() (r *mux.Router) {
+func routerSetup(db SpenderDB) (r *mux.Router) {
 	r = mux.NewRouter()
 
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -19,11 +19,12 @@ func routerSetup() (r *mux.Router) {
 		}
 	})
 
-	usersHandler := &UsersHandler{}
-	spendingHandler := &SpendingHandler{}
+	usersHandler := NewUsersHandler(db)
+	spendingHandler := NewSpendingHandler(db)
 
 	// new users, list users, etc ...
 	r.Handle("/users", usersHandler)
+	r.Handle("/users/{username}", usersHandler)
 	// new spending, remove spending, update spendings ...
 	r.Handle("/spending/{username}", spendingHandler)
 
@@ -31,7 +32,12 @@ func routerSetup() (r *mux.Router) {
 }
 
 func Serve() {
-	router := routerSetup()
+	tempDB := prepareTempDB()
+	for _, u := range tempDB.Users {
+		log.Debugf("user: %s", u.Username)
+	}
+
+	router := routerSetup(tempDB)
 	ipAndPort := fmt.Sprintf("%s:%s", IPAddress, Port)
 	httpServer := &http.Server{
 		Handler:      router,
@@ -42,4 +48,33 @@ func Serve() {
 
 	log.Infof(" > server listening on: [%s]", ipAndPort)
 	log.Fatal(httpServer.ListenAndServe())
+}
+
+func prepareTempDB() *TempDB {
+	adminUser := NewUser("admin")
+	adminUser.Spendings = append(adminUser.Spendings, Spending{
+		Amount:   100,
+		Currency: "RSD",
+	})
+	adminUser.Spendings = append(adminUser.Spendings, Spending{
+		Amount:   2300,
+		Currency: "RSD",
+	})
+	lazarUser := NewUser("lazar")
+	lazarUser.Spendings = append(lazarUser.Spendings, Spending{
+		Amount:   89.99,
+		Currency: "USD",
+	})
+
+	tempDB := NewTempDB()
+	err := tempDB.StoreUser(adminUser)
+	if err != nil {
+		log.Panic(err.Error())
+	}
+	err = tempDB.StoreUser(lazarUser)
+	if err != nil {
+		log.Panic(err.Error())
+	}
+
+	return tempDB
 }

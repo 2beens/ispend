@@ -1,6 +1,6 @@
 package ispend
 
 type Spending struct {
-	Currency string
-	Amount   float32
+	Currency string  `json:"currency"`
+	Amount   float32 `json:"amount"`
 }
