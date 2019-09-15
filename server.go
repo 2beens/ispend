@@ -41,6 +41,9 @@ func routerSetup(db SpenderDB) (r *mux.Router) {
 }
 
 func Serve() {
+	// TODO: will be adapted ...
+	TestPostgresDB()
+
 	tempDB := prepareTempDB()
 	for _, u := range tempDB.Users {
 		log.Debugf("user: %s", u.Username)
