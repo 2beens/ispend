@@ -26,13 +26,14 @@ func (handler *UsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else if strings.HasPrefix(r.URL.Path, "/users/") {
 			handler.handleGetUser(w, r)
 		} else {
-			err := SendAPIErrorResp(w, "unknown path", http.StatusBadRequest)
-			if err != nil {
-				log.Errorf("error while sending error response to client [unknown path]: %s", err.Error())
-			}
+			handler.handleUnknownPath(w)
 		}
 	case "POST":
-		log.Error("not implemented")
+		if r.URL.Path == "/users" {
+			handler.handleNewUser(w, r)
+		} else {
+			handler.handleUnknownPath(w)
+		}
 	default:
 		err := SendAPIErrorResp(w, "unknown request method", http.StatusBadRequest)
 		if err != nil {
@@ -63,5 +64,48 @@ func (handler *UsersHandler) handleGetUser(w http.ResponseWriter, r *http.Reques
 	err = SendAPIOKRespWithData(w, "success", user)
 	if err != nil {
 		log.Errorf("error while sending response to client [get user]: %s", err.Error())
+	}
+}
+
+func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		log.Errorf("error parsing form values [/users]: %s", err.Error())
+		return
+	}
+
+	username := r.FormValue("username")
+	if username == "" {
+		_ = SendAPIErrorResp(w, "missing username", http.StatusBadRequest)
+		return
+	}
+	existingUser, err := handler.db.GetUser(username)
+	if err != nil && err != ErrNotFound {
+		log.Errorf("error while adding new user: %s", err.Error())
+		_ = SendAPIErrorResp(w, "server error", http.StatusInternalServerError)
+		return
+	}
+	if existingUser != nil {
+		_ = SendAPIErrorResp(w, "error, user exists", http.StatusConflict)
+		return
+	}
+
+	user := NewUser(username)
+	err = handler.db.StoreUser(user)
+	if err != nil {
+		log.Errorf("error while adding new user: %s", err.Error())
+		_ = SendAPIErrorResp(w, "server error", http.StatusInternalServerError)
+		return
+	}
+
+	err = SendAPIOKResp(w, "success")
+	if err != nil {
+		log.Errorf("error while adding new user: %s", err.Error())
+	}
+}
+
+func (handler *UsersHandler) handleUnknownPath(w http.ResponseWriter) {
+	err := SendAPIErrorResp(w, "unknown path", http.StatusBadRequest)
+	if err != nil {
+		log.Errorf("error while sending error response to client [unknown path]: %s", err.Error())
 	}
 }

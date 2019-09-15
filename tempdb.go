@@ -1,7 +1,5 @@
 package ispend
 
-import "errors"
-
 type TempDB struct {
 	Users []User
 }
@@ -23,7 +21,7 @@ func (db *TempDB) GetUser(username string) (*User, error) {
 			return &u, nil
 		}
 	}
-	return nil, errors.New("cannot find user with username: " + username)
+	return nil, ErrNotFound
 }
 
 func (db *TempDB) GetAllUsers() []User {
