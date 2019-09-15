@@ -1,0 +1,2 @@
+add new user via curl
+    - curl -d "username=serj" -H "Content-Type: application/x-www-form-urlencoded" -X POST http://localhost:8080/users

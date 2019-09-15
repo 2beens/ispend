@@ -60,19 +60,25 @@ func Serve() {
 }
 
 func prepareTempDB() *TempDB {
+	skNightlife := SpendKind{"nightlife"}
+	skTravel := SpendKind{"travel"}
+
 	adminUser := NewUser("admin")
 	adminUser.Spendings = append(adminUser.Spendings, Spending{
 		Amount:   100,
 		Currency: "RSD",
+		Kind:     skNightlife,
 	})
 	adminUser.Spendings = append(adminUser.Spendings, Spending{
 		Amount:   2300,
 		Currency: "RSD",
+		Kind:     skTravel,
 	})
 	lazarUser := NewUser("lazar")
 	lazarUser.Spendings = append(lazarUser.Spendings, Spending{
 		Amount:   89.99,
 		Currency: "USD",
+		Kind:     skTravel,
 	})
 
 	tempDB := NewTempDB()
@@ -81,6 +87,23 @@ func prepareTempDB() *TempDB {
 		log.Panic(err.Error())
 	}
 	err = tempDB.StoreUser(lazarUser)
+	if err != nil {
+		log.Panic(err.Error())
+	}
+
+	err = tempDB.StoreSpendKind(skNightlife)
+	if err != nil {
+		log.Panic(err.Error())
+	}
+	err = tempDB.StoreSpendKind(SpendKind{"food"})
+	if err != nil {
+		log.Panic(err.Error())
+	}
+	err = tempDB.StoreSpendKind(SpendKind{"rent"})
+	if err != nil {
+		log.Panic(err.Error())
+	}
+	err = tempDB.StoreSpendKind(skTravel)
 	if err != nil {
 		log.Panic(err.Error())
 	}
