@@ -1,4 +1,4 @@
-module "https://github.com/2beens/ispend"
+module github.com/2beens/ispend
 
 go 1.12
 
