@@ -19,6 +19,14 @@ func routerSetup() (r *mux.Router) {
 		}
 	})
 
+	usersHandler := &UsersHandler{}
+	spendingHandler := &SpendingHandler{}
+
+	// new users, list users, etc ...
+	r.Handle("/users", usersHandler)
+	// new spending, remove spending, update spendings ...
+	r.Handle("/spending/{username}", spendingHandler)
+
 	return r
 }
 
