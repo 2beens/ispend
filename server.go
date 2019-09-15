@@ -9,6 +9,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Tracef(" ====> request path: [%s]", r.URL.Path)
+		next.ServeHTTP(w, r)
+	})
+}
+
 func routerSetup(db SpenderDB) (r *mux.Router) {
 	r = mux.NewRouter()
 
@@ -27,6 +34,8 @@ func routerSetup(db SpenderDB) (r *mux.Router) {
 	r.Handle("/users/{username}", usersHandler)
 	// new spending, remove spending, update spendings ...
 	r.Handle("/spending/{username}", spendingHandler)
+
+	r.Use(loggingMiddleware)
 
 	return r
 }
