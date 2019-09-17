@@ -1,6 +1,6 @@
 package ispend
 
 const (
-	IPAddress = "localhost"
-	Port      = "8080"
+	IPAddress   = "localhost"
+	DefaultPort = "8080"
 )

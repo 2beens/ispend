@@ -44,7 +44,7 @@ func routerSetup(db SpenderDB) (r *mux.Router) {
 	return r
 }
 
-func Serve() {
+func Serve(port string) {
 	// TODO: will be adapted ...
 	TestPostgresDB()
 
@@ -53,8 +53,13 @@ func Serve() {
 		log.Debugf("user: %s", u.Username)
 	}
 
+	if port == "" {
+		port = DefaultPort
+		log.Debugf("using default port: %s", port)
+	}
+
 	router := routerSetup(tempDB)
-	ipAndPort := fmt.Sprintf("%s:%s", IPAddress, Port)
+	ipAndPort := fmt.Sprintf("%s:%s", IPAddress, port)
 	httpServer := &http.Server{
 		Handler:      router,
 		Addr:         ipAndPort,

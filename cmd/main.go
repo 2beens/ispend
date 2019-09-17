@@ -11,6 +11,7 @@ import (
 
 func main() {
 	displayHelp := flag.Bool("h", false, "display info/help message")
+	port := flag.String("port", "", "server port")
 	logFileName := flag.String("logfile", "", "log file used to store server logs")
 	logLevel := flag.String("loglvl", "", "log level")
 	flag.Parse()
@@ -18,6 +19,7 @@ func main() {
 	if *displayHelp {
 		log.Println(`
 				-h                      > show this message
+				-port=<port>		> used port
 				-logfile=<logFileName>  > output log file name
 				-loglvl=<logLevel>	> set log level
 			`)
@@ -27,7 +29,7 @@ func main() {
 
 	loggingSetup(*logFileName, *logLevel)
 
-	ispend.Serve()
+	ispend.Serve(*port)
 }
 
 func loggingSetup(logFileName string, logLevel string) {
