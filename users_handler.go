@@ -89,7 +89,13 @@ func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	user := NewUser(username)
+	spKinds, err := handler.db.GetAllDefaultSpendKinds()
+	if err != nil {
+		log.Errorf("error getting spend kinds: %s", err.Error())
+		_ = SendAPIErrorResp(w, "server error", http.StatusInternalServerError)
+		return
+	}
+	user := NewUser(username, spKinds)
 	err = handler.db.StoreUser(user)
 	if err != nil {
 		log.Errorf("error while adding new user: %s", err.Error())

@@ -1,9 +1,10 @@
 package ispend
 
 type SpenderDB interface {
-	StoreSpendKind(kind SpendKind) error
-	GetSpendKind(name string) (*SpendKind, error)
-	GetAllSpendKinds() ([]SpendKind, error)
+	StoreDefaultSpendKind(kind SpendKind) error
+	GetDefaultSpendKind(name string) (*SpendKind, error)
+	GetAllDefaultSpendKinds() ([]SpendKind, error)
+	GetSpendKinds(username string) ([]SpendKind, error)
 	StoreUser(user User) error
 	GetUser(username string) (*User, error)
 	GetAllUsers() []User

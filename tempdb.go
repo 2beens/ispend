@@ -1,24 +1,24 @@
 package ispend
 
 type TempDB struct {
-	SpendKinds []SpendKind
-	Users      []User
+	DefaultSpendKinds []SpendKind
+	Users             []User
 }
 
 func NewTempDB() *TempDB {
 	return &TempDB{
-		SpendKinds: []SpendKind{},
-		Users:      []User{},
+		DefaultSpendKinds: []SpendKind{},
+		Users:             []User{},
 	}
 }
 
-func (db *TempDB) StoreSpendKind(kind SpendKind) error {
-	db.SpendKinds = append(db.SpendKinds, kind)
+func (db *TempDB) StoreDefaultSpendKind(kind SpendKind) error {
+	db.DefaultSpendKinds = append(db.DefaultSpendKinds, kind)
 	return nil
 }
 
-func (db *TempDB) GetSpendKind(name string) (*SpendKind, error) {
-	for _, k := range db.SpendKinds {
+func (db *TempDB) GetDefaultSpendKind(name string) (*SpendKind, error) {
+	for _, k := range db.DefaultSpendKinds {
 		if k.Name == name {
 			return &k, nil
 		}
@@ -26,8 +26,12 @@ func (db *TempDB) GetSpendKind(name string) (*SpendKind, error) {
 	return nil, ErrNotFound
 }
 
-func (db *TempDB) GetAllSpendKinds() ([]SpendKind, error) {
-	return db.SpendKinds, nil
+func (db *TempDB) GetAllDefaultSpendKinds() ([]SpendKind, error) {
+	return db.DefaultSpendKinds, nil
+}
+
+func (db *TempDB) GetSpendKinds(username string) ([]SpendKind, error) {
+	return nil, nil
 }
 
 func (db *TempDB) StoreUser(user User) error {

@@ -28,12 +28,16 @@ func routerSetup(db SpenderDB) (r *mux.Router) {
 
 	usersHandler := NewUsersHandler(db)
 	spendingHandler := NewSpendingHandler(db)
+	spendKindHandler := NewSpendKindHandler(db)
 
 	// new users, list users, etc ...
 	r.Handle("/users", usersHandler)
 	r.Handle("/users/{username}", usersHandler)
 	// new spending, remove spending, update spendings ...
 	r.Handle("/spending/{username}", spendingHandler)
+	// new spend kind, spend kinds list, etc ...
+	r.Handle("/spending/kind", spendKindHandler)
+	r.Handle("/spending/kind/{username}", spendKindHandler)
 
 	r.Use(loggingMiddleware)
 
@@ -65,8 +69,11 @@ func Serve() {
 func prepareTempDB() *TempDB {
 	skNightlife := SpendKind{"nightlife"}
 	skTravel := SpendKind{"travel"}
+	skFood := SpendKind{"food"}
+	skRent := SpendKind{"rent"}
+	defSpendKinds := []SpendKind{skNightlife, skTravel, skFood, skRent}
 
-	adminUser := NewUser("admin")
+	adminUser := NewUser("admin", defSpendKinds)
 	adminUser.Spendings = append(adminUser.Spendings, Spending{
 		Amount:   100,
 		Currency: "RSD",
@@ -77,7 +84,7 @@ func prepareTempDB() *TempDB {
 		Currency: "RSD",
 		Kind:     skTravel,
 	})
-	lazarUser := NewUser("lazar")
+	lazarUser := NewUser("lazar", defSpendKinds)
 	lazarUser.Spendings = append(lazarUser.Spendings, Spending{
 		Amount:   89.99,
 		Currency: "USD",
@@ -94,19 +101,19 @@ func prepareTempDB() *TempDB {
 		log.Panic(err.Error())
 	}
 
-	err = tempDB.StoreSpendKind(skNightlife)
+	err = tempDB.StoreDefaultSpendKind(skNightlife)
 	if err != nil {
 		log.Panic(err.Error())
 	}
-	err = tempDB.StoreSpendKind(SpendKind{"food"})
+	err = tempDB.StoreDefaultSpendKind(skFood)
 	if err != nil {
 		log.Panic(err.Error())
 	}
-	err = tempDB.StoreSpendKind(SpendKind{"rent"})
+	err = tempDB.StoreDefaultSpendKind(skRent)
 	if err != nil {
 		log.Panic(err.Error())
 	}
-	err = tempDB.StoreSpendKind(skTravel)
+	err = tempDB.StoreDefaultSpendKind(skTravel)
 	if err != nil {
 		log.Panic(err.Error())
 	}
