@@ -19,12 +19,9 @@ func loggingMiddleware(next http.Handler) http.Handler {
 func routerSetup(db SpenderDB) (r *mux.Router) {
 	r = mux.NewRouter()
 
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		_, err := w.Write([]byte("OK"))
-		if err != nil {
-			log.Error(err.Error())
-		}
-	})
+	// server static files
+	fs := http.FileServer(http.Dir("./public/"))
+	r.PathPrefix("/public/").Handler(http.StripPrefix("/public/", fs))
 
 	viewsMaker, err := NewViewsMaker("public/views/")
 	if err != nil {
@@ -32,6 +29,18 @@ func routerSetup(db SpenderDB) (r *mux.Router) {
 	}
 	r.HandleFunc("/index", func(w http.ResponseWriter, r *http.Request) {
 		viewsMaker.RenderView(w, "index", nil)
+	})
+	r.HandleFunc("/contact", func(w http.ResponseWriter, r *http.Request) {
+		viewsMaker.RenderView(w, "contact", nil)
+	})
+	r.HandleFunc("/about", func(w http.ResponseWriter, r *http.Request) {
+		viewsMaker.RenderView(w, "about", nil)
+	})
+	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		_, err := w.Write([]byte("Oh yeah..."))
+		if err != nil {
+			log.Error(err.Error())
+		}
 	})
 
 	usersHandler := NewUsersHandler(db)
