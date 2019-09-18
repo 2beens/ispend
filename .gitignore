@@ -13,3 +13,6 @@
 
 # logs
 *.log
+
+# frontend public libs
+public/libs

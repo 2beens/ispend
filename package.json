@@ -1,0 +1,12 @@
+{
+  "name": "ispend",
+  "version": "1.0.0",
+  "description": "iSpend App",
+  "main": "cmd/main.go",
+  "repository": "git@github.com:2beens/ispend.git",
+  "author": "2beens <stubin87@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "bootstrap": "^4.3.1"
+  }
+}
