@@ -26,6 +26,14 @@ func routerSetup(db SpenderDB) (r *mux.Router) {
 		}
 	})
 
+	viewsMaker, err := NewViewsMaker("public/views/")
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	r.HandleFunc("/index", func(w http.ResponseWriter, r *http.Request) {
+		viewsMaker.RenderView(w, "index", nil)
+	})
+
 	usersHandler := NewUsersHandler(db)
 	spendingHandler := NewSpendingHandler(db)
 	spendKindHandler := NewSpendKindHandler(db)
