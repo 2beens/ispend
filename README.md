@@ -1,4 +1,6 @@
 # ispend
 Track where the f my money goes to
 
-IN PROGRESS ...
+DEV IN PROGRESS ...
+
+hosted @ http://www.serjspends.de
