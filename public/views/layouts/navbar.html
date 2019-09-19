@@ -1,27 +1,21 @@
 {{define "navbar"}}
-    <div class="header clearfix">
-        <nav>
-            <ul class="nav nav-pills float-right">
-{{/*                <li>*/}}
-{{/*                    <img id="spotify-icon" src="/public/images/spotify.ico" alt="Spotify Icon">*/}}
-{{/*                </li>*/}}
-                <li class="nav-item">
-                    <a id="nav-bar-home" class="nav-link nav-bar-a active" href="/index">Home <span class="sr-only">(current)</span></a>
-                </li>
-                <li class="nav-item">
-                    <a id="nav-bar-about" class="nav-link nav-bar-a" href="/about">About</a>
-                </li>
-                <li class="nav-item">
-                    <a id="nav-bar-contact" class="nav-link nav-bar-a" href="/contact">Contact</a>
-                </li>
-{{/*                <li class="nav-item" id="nav-item-login">*/}}
-{{/*                    <a class="nav-item nav-link" href="/login">Login</a>*/}}
-{{/*                </li>*/}}
-{{/*                <li class="nav-item invisible-elem" id="nav-item-logout">*/}}
-{{/*                    <a class="nav-item nav-link" onclick="onLogout()" href="/logout">Logout</a>*/}}
-{{/*                </li>*/}}
+    <div id="header">
+        <div id="logo">
+            <div id="logo_text">
+                <!-- class="logo_colour", allows you to change the colour of the text -->
+                <h1><a href="/index">i<span class="logo_colour">Spend</span></a></h1>
+                <h2>Simple. Track where the f your money goes to.</h2>
+            </div>
+        </div>
+        <div id="menubar">
+            <ul id="menu">
+                <!-- put class="selected" in the li tag for the selected page - to highlight which page you're on -->
+                <li class="selected"><a href="/index">Home</a></li>
+                <li><a href="/examples">Examples</a></li>
+                <li><a href="/page">A Page</a></li>
+                <li><a href="/another_page">Another Page</a></li>
+                <li><a href="/contact">Contact Us</a></li>
             </ul>
-        </nav>
-{{/*        <h3 class="text-muted">Spotilizer</h3>*/}}
+        </div>
     </div>
 {{end}}

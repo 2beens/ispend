@@ -1,16 +1,59 @@
-
 {{define "content"}}
-    <div class="row marketing">
-        <div class="col-lg-6">
-            <h4>GitHub</h4>
-            <a href="https://github.com/2beens">2beens</a>
+    <div class="sidebar">
+        <!-- insert your sidebar items here -->
+        <h3>Latest News</h3>
+        <h4>New Website Launched</h4>
+        <h5>January 1st, 2010</h5>
+        <p>2010 sees the redesign of our website. Take a look around and let us know what you think.<br/><a href="#">Read
+                more</a></p>
+        <p></p>
+        <h4>New Website Launched</h4>
+        <h5>January 1st, 2010</h5>
+        <p>2010 sees the redesign of our website. Take a look around and let us know what you think.<br/><a href="#">Read
+                more</a></p>
+        <h3>Useful Links</h3>
+        <ul>
+            <li><a href="#">link 1</a></li>
+            <li><a href="#">link 2</a></li>
+            <li><a href="#">link 3</a></li>
+            <li><a href="#">link 4</a></li>
+        </ul>
+        <h3>Search</h3>
+        <form method="post" action="#" id="search_form">
+            <p>
+                <input class="search" type="text" name="search_field" value="Enter keywords....."/>
+                <input name="search" type="image" style="border: 0; margin: 0 0 -9px 5px;" src="style/search.png"
+                       alt="Search" title="Search"/>
+            </p>
+        </form>
+    </div>
+    <div id="content">
+        <!-- insert the page content here -->
+        <div class="row">
+            <div class="col-lg-6">
+                <h4>GitHub</h4>
+                <a href="https://github.com/2beens">2beens</a>
 
-            <h4>Instagram</h4>
-            <a href="https://www.instagram.com/2beens/">@2beens</a>
+                <h4>Instagram</h4>
+                <a href="https://www.instagram.com/2beens/">@2beens</a>
+            </div>
+            <div class="col-lg-6">
+                <h4>LinkedIn</h4>
+                <a href="https://www.linkedin.com/in/sr%C4%91an-serj-tubin-b0b87436/">Serj Tubin</a>
+            </div>
         </div>
-        <div class="col-lg-6">
-            <h4>LinkedIn</h4>
-            <a href="https://www.linkedin.com/in/sr%C4%91an-serj-tubin-b0b87436/">Serj Tubin</a>
-        </div>
+        <p>Below is an example of how a contact form might look with this template:</p>
+        <form action="#" method="post">
+            <div class="form_settings">
+                <p><span>Name</span><input class="contact" type="text" name="your_name" value=""/></p>
+                <p><span>Email Address</span><input class="contact" type="text" name="your_email" value=""/></p>
+                <p><span>Message</span><textarea class="contact textarea" rows="8" cols="50"
+                                                 name="your_enquiry"></textarea></p>
+                <p style="padding-top: 15px"><span>&nbsp;</span><input class="submit" type="submit"
+                                                                       name="contact_submitted" value="submit"/></p>
+            </div>
+        </form>
+        <p><br/><br/>NOTE: A contact form such as this would require some way of emailing the input to an email address.
+        </p>
     </div>
 {{end}}
