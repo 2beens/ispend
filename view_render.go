@@ -59,6 +59,10 @@ func (vm *ViewsMaker) RenderView(w http.ResponseWriter, page string, viewData in
 	}
 }
 
+func (vm *ViewsMaker) RenderIndex(w http.ResponseWriter) {
+	vm.RenderView(w, "index", nil)
+}
+
 type ErrorViewData struct {
 	Title   string      `json:"title"`
 	Message string      `json:"message"`
