@@ -73,6 +73,14 @@ func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	password := r.FormValue("password")
+	if password == "" {
+		_ = SendAPIErrorResp(w, "missing password", http.StatusBadRequest)
+		return
+	}
+
+	// TODO: hash password
+
 	username := r.FormValue("username")
 	if username == "" {
 		_ = SendAPIErrorResp(w, "missing username", http.StatusBadRequest)
@@ -88,6 +96,8 @@ func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Reques
 		_ = SendAPIErrorResp(w, "error, user exists", http.StatusConflict)
 		return
 	}
+
+	log.Tracef("creating new user [%s], pass:[%s]...", username, password)
 
 	spKinds, err := handler.db.GetAllDefaultSpendKinds()
 	if err != nil {
@@ -107,6 +117,8 @@ func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		log.Errorf("error while adding new user: %s", err.Error())
 	}
+
+	log.Tracef("creating new user [%s] created", username)
 }
 
 func (handler *UsersHandler) handleUnknownPath(w http.ResponseWriter) {

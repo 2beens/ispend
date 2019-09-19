@@ -48,7 +48,7 @@ func (vm *ViewsMaker) reloadViews() error {
 		if err != nil {
 			return err
 		}
-		log.Infof(" > read template view file: " + viewPath)
+		//log.Infof(" > read template view file: " + viewPath)
 		vm.templatesMap[v] = t
 	}
 

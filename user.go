@@ -2,6 +2,7 @@ package ispend
 
 type User struct {
 	Username   string      `json:"username"`
+	Password   string      `json:"password"`
 	Spendings  []Spending  `json:"spendings"`
 	SpendKinds []SpendKind `json:"spending_kinds"`
 }

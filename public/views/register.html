@@ -1,14 +1,16 @@
 {{define "content"}}
+    <script src="public/js/register.js"></script>
+
     <div id="content">
         <form action="#" method="post">
             <div class="form_settings">
-                <p><span>Email Address</span><input class="contact" type="text" name="your_email" value=""/></p>
-                <p><span>Name</span><input class="contact" type="text" name="your_name" value=""/></p>
-                <p><span>Password</span><input class="contact" type="text" name="your_password" value=""/></p>
-                <p style="padding-top: 15px"><span>&nbsp;</span><input class="submit" type="submit"
-                                                                       name="contact_submitted" value="submit"/></p>
+                {{/*                <p><span>Email Address</span><input class="contact" type="email" name="email" value=""/></p>*/}}
+                <p><span>Username</span><input class="contact" type="text" name="username" value=""/></p>
+                <p><span>Password</span><input class="contact" type="password" name="password" value=""/></p>
+{{/*                <p style="padding-top: 15px"><span>&nbsp;</span><input class="submit" type="submit" onclick="registerPost()"*/}}
+{{/*                                                                       name="contact_submitted" value="Submit"/></p>*/}}
+                <p><input class="contact" type="button" onclick="registerPost()" value="Submit"/></p>
             </div>
         </form>
-        </p>
     </div>
 {{end}}

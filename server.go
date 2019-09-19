@@ -37,15 +37,19 @@ func routerSetup(db SpenderDB) (r *mux.Router) {
 	r.HandleFunc("/contact", func(w http.ResponseWriter, r *http.Request) {
 		viewsMaker.RenderView(w, "contact", nil)
 	})
-	r.HandleFunc("/another_page", func(w http.ResponseWriter, r *http.Request) {
-		viewsMaker.RenderView(w, "another_page", nil)
-	})
 	r.HandleFunc("/examples", func(w http.ResponseWriter, r *http.Request) {
 		viewsMaker.RenderView(w, "examples", nil)
 	})
 	r.HandleFunc("/page", func(w http.ResponseWriter, r *http.Request) {
 		viewsMaker.RenderView(w, "page", nil)
 	})
+	r.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
+		viewsMaker.RenderView(w, "register", nil)
+	})
+	r.HandleFunc("/debug", func(w http.ResponseWriter, r *http.Request) {
+		viewsMaker.RenderView(w, "debug", nil)
+	})
+
 	r.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
 		err := SendAPIOKResp(w, "Oh yeah...")
 		if err != nil {

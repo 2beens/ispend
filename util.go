@@ -3,7 +3,22 @@ package ispend
 import (
 	"encoding/json"
 	"io"
+	"math"
+	"math/rand"
 )
+
+func GenerateRandomString(length int) string {
+	text := ""
+	possible := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+
+	for i := 0; i < length; i++ {
+		possibleLen := float64(len(possible))
+		nextPossible := math.Floor(rand.Float64() * possibleLen)
+		text += string(possible[int(nextPossible)])
+	}
+
+	return text
+}
 
 func SendAPIResp(w io.Writer, data interface{}) error {
 	dataBytes, err := json.Marshal(data)
