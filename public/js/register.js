@@ -17,13 +17,20 @@ function registerPost() {
         },
         success: function (data, textStatus, jQxhr) {
             console.log('response: ' + JSON.stringify(data));
+            if (data && !data.is_error) {
+                toastr.success(data.message, `Register [${username}] success!`);
+            } else {
+                toastr.error(data.message, 'Register error');
+            }
         },
         error: function (jqXhr, textStatus, errorThrown) {
-            console.log('response: ' + JSON.stringify(data));
+            console.log('response: ' + JSON.stringify(errorThrown));
+            toastr.error(JSON.stringify(errorThrown), 'Register error');
         },
     });
 }
 
 (function () {
     console.log('iSpend register script loaded ...');
+    toastr.success('Page loaded ....');
 })();

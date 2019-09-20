@@ -43,6 +43,6 @@ func SendAPIOKRespWithData(w io.Writer, message string, data interface{}) error 
 }
 
 func SendAPIErrorResp(w io.Writer, message string, status int) error {
-	apiErr := APIResponse{Status: status, Message: message}
+	apiErr := APIResponse{Status: status, Message: message, IsError: true}
 	return SendAPIResp(w, apiErr)
 }
