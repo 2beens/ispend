@@ -1,5 +1,16 @@
 {{define "sidebar"}}
+    <script src="public/js/sidebar.js"></script>
+
     <div class="sidebar">
+        <form method="post" action="#" onsubmit="return false" id="login_form">
+            <p>
+                <input class="search" autocomplete="off" type="text" id="form_username" placeholder="username"/>
+                <input class="search" autocomplete="off" type="password" id="form_password" placeholder="password"/>
+            <p><span>&nbsp;</span><input class="submit" type="submit" name="submit_login"
+                                                                   onclick="login()" value="Login"/></p>
+            </p>
+        </form>
+
         <!-- insert your sidebar items here -->
         <h3>Latest News</h3>
         <h4>New Website Launched</h4>

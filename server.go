@@ -12,6 +12,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var loginSessionManager = NewLoginSessionHandler()
+
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Tracef(" ====> request path: [%s]", r.URL.Path)
@@ -68,12 +70,13 @@ func routerSetup(db SpenderDB, chInterrupt chan signal) (r *mux.Router) {
 		}
 	})
 
-	usersHandler := NewUsersHandler(db)
+	usersHandler := NewUsersHandler(db, loginSessionManager)
 	spendingHandler := NewSpendingHandler(db)
 	spendKindHandler := NewSpendKindHandler(db)
 
 	// new users, list users, etc ...
 	r.Handle("/users", usersHandler)
+	r.Handle("/users/login", usersHandler)
 	r.Handle("/users/{username}", usersHandler)
 	// new spending, remove spending, update spendings ...
 	r.Handle("/spending/{username}", spendingHandler)
@@ -87,6 +90,8 @@ func routerSetup(db SpenderDB, chInterrupt chan signal) (r *mux.Router) {
 }
 
 func Serve(port string) {
+	// TODO: make a type out of this file ?
+
 	// TODO: will be adapted ...
 	TestPostgresDB()
 

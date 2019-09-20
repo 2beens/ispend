@@ -7,9 +7,10 @@ type User struct {
 	SpendKinds []SpendKind `json:"spending_kinds"`
 }
 
-func NewUser(username string, spendKinds []SpendKind) User {
+func NewUser(username string, password string, spendKinds []SpendKind) User {
 	return User{
 		Username:   username,
+		Password:   password,
 		Spendings:  []Spending{},
 		SpendKinds: spendKinds,
 	}
