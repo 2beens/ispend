@@ -16,7 +16,7 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func routerSetup(db SpenderDB) (r *mux.Router) {
+func routerSetup(db SpenderDB, chInterrupt chan signal) (r *mux.Router) {
 	r = mux.NewRouter()
 
 	// server static files
@@ -57,6 +57,15 @@ func routerSetup(db SpenderDB) (r *mux.Router) {
 		}
 	})
 
+	r.HandleFunc("/harakiri", func(w http.ResponseWriter, r *http.Request) {
+		log.Warn("received harakiri signal, killing myself ...")
+		chInterrupt <- emptySignal
+		err := SendAPIOKResp(w, "Goodbye cruel world...")
+		if err != nil {
+			log.Error(err.Error())
+		}
+	})
+
 	usersHandler := NewUsersHandler(db)
 	spendingHandler := NewSpendingHandler(db)
 	spendKindHandler := NewSpendKindHandler(db)
@@ -79,6 +88,8 @@ func Serve(port string) {
 	// TODO: will be adapted ...
 	TestPostgresDB()
 
+	chInterrupt := make(chan signal, 1)
+
 	tempDB := prepareTempDB()
 	for _, u := range tempDB.Users {
 		log.Debugf("user: %s", u.Username)
@@ -89,8 +100,17 @@ func Serve(port string) {
 		log.Debugf("using default port: %s", port)
 	}
 
-	router := routerSetup(tempDB)
+	// we need a webserver to get the pprof webserver
+	pprofhost := "localhost"
+	pprofport := "5002"
+	go func() {
+		log.Debugf("starting pprof server on [%s:%s] ...", pprofhost, pprofport)
+		log.Debugln(http.ListenAndServe(pprofhost+":"+pprofport, nil))
+	}()
+
+	router := routerSetup(tempDB, chInterrupt)
 	ipAndPort := fmt.Sprintf("%s:%s", IPAddress, port)
+
 	httpServer := &http.Server{
 		Handler:      router,
 		Addr:         ipAndPort,
@@ -98,8 +118,13 @@ func Serve(port string) {
 		ReadTimeout:  15 * time.Second,
 	}
 
-	log.Infof(" > server listening on: [%s]", ipAndPort)
-	log.Fatal(httpServer.ListenAndServe())
+	go func() {
+		log.Infof(" > server listening on: [%s]", ipAndPort)
+		log.Fatal(httpServer.ListenAndServe())
+	}()
+
+	// wait for harakiri signal
+	<-chInterrupt
 }
 
 func prepareTempDB() *TempDB {
