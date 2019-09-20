@@ -5,3 +5,7 @@ deploy go web app using nginx on ubuntu
 
 my EXOSCALE cloud account
     -https://portal.exoscale.com/u/stubin87@gmail.com/compute/instances
+
+############### iOS
+deploy an app for testing
+https://stackoverflow.com/questions/43535693/private-ios-app#targetText=Ad%20Hoc%20Distribution%20allows%20you,the%20iOS%20Developer%20Enterprise%20Program.
