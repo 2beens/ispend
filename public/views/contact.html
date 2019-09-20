@@ -1,16 +1,31 @@
-
 {{define "content"}}
-    <div class="row marketing">
-        <div class="col-lg-6">
-            <h4>GitHub</h4>
-            <a href="https://github.com/2beens">2beens</a>
+    <div id="content">
+        <!-- insert the page content here -->
+        <div class="row">
+            <h1>Well, if you must, here are some links:</h1>
+            <div class="col-lg-6">
+                <h4>GitHub</h4>
+                <a href="https://github.com/2beens">2beens</a>
 
-            <h4>Instagram</h4>
-            <a href="https://www.instagram.com/2beens/">@2beens</a>
+                <h4>Instagram</h4>
+                <a href="https://www.instagram.com/2beens/">@2beens</a>
+            </div>
+            <div class="col-lg-6">
+                <h4>LinkedIn</h4>
+                <a href="https://www.linkedin.com/in/sr%C4%91an-serj-tubin-b0b87436/">Serj Tubin</a>
+            </div>
         </div>
-        <div class="col-lg-6">
-            <h4>LinkedIn</h4>
-            <a href="https://www.linkedin.com/in/sr%C4%91an-serj-tubin-b0b87436/">Serj Tubin</a>
-        </div>
+        <p style="margin-top: 15px;">Note: work in progress. The message will be received by nobody.</p>
+        <form action="#" method="post">
+            <div class="form_settings">
+                <p><span>Name</span><input class="contact" type="text" name="your_name" value=""/></p>
+                <p><span>Email Address</span><input class="contact" type="text" name="your_email" value=""/></p>
+                <p><span>Message</span><textarea class="contact textarea" rows="8" cols="50"
+                                                 name="your_enquiry"></textarea></p>
+                <p style="padding-top: 15px"><span>&nbsp;</span><input class="submit" type="submit"
+                                                                       name="contact_submitted" value="submit"/></p>
+            </div>
+        </form>
+        </p>
     </div>
 {{end}}

@@ -21,38 +21,53 @@ func NewViewsMaker(viewsDir string) (*ViewsMaker, error) {
 		templatesMap: make(map[string]*template.Template),
 	}
 
-	layoutFiles := []string{
-		viewsDir + "/layouts/layout.html",
-		viewsDir + "/layouts/footer.html",
-		viewsDir + "/layouts/navbar.html",
-	}
-
-	viewFileNames, err := getViewFileNames(viewsDir)
+	err := viewsMaker.reloadViews()
 	if err != nil {
 		return nil, err
-	}
-
-	for _, v := range viewFileNames {
-		viewPath := viewsDir + v
-		t, err := template.New("layout").ParseFiles(append(layoutFiles, viewPath)...)
-		if err != nil {
-			return nil, err
-		}
-		log.Infof(" > read template view file: " + viewPath)
-		viewsMaker.templatesMap[v] = t
 	}
 
 	return viewsMaker, nil
 }
 
+func (vm *ViewsMaker) reloadViews() error {
+	layoutFiles := []string{
+		vm.viewsDir + "/layouts/layout.html",
+		vm.viewsDir + "/layouts/footer.html",
+		vm.viewsDir + "/layouts/navbar.html",
+		vm.viewsDir + "/layouts/sidebar.html",
+	}
+
+	viewFileNames, err := getViewFileNames(vm.viewsDir)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range viewFileNames {
+		viewPath := vm.viewsDir + v
+		t, err := template.New("layout").ParseFiles(append(layoutFiles, viewPath)...)
+		if err != nil {
+			return err
+		}
+		//log.Infof(" > read template view file: " + viewPath)
+		vm.templatesMap[v] = t
+	}
+
+	return nil
+}
+
 func (vm *ViewsMaker) RenderView(w http.ResponseWriter, page string, viewData interface{}) {
+	err := vm.reloadViews()
+	if err != nil {
+		log.Error(err.Error())
+	}
+
 	t, ok := vm.templatesMap[page+".html"]
 	if !ok {
 		log.Error(" >>> error rendering view, cannot find view template: " + page + ".html")
 		http.Error(w, "internal server error (error rendering view)", http.StatusInternalServerError)
 	}
 
-	err := t.ExecuteTemplate(w, "layout", viewData)
+	err = t.ExecuteTemplate(w, "layout", viewData)
 	if err != nil {
 		log.Error(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)

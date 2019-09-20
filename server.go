@@ -1,13 +1,18 @@
 package ispend
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"os"
+	ossignal "os/signal"
 	"time"
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
+
+var loginSessionManager = NewLoginSessionHandler()
 
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -16,7 +21,7 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func routerSetup(db SpenderDB) (r *mux.Router) {
+func routerSetup(db SpenderDB, chInterrupt chan signal) (r *mux.Router) {
 	r = mux.NewRouter()
 
 	// server static files
@@ -37,9 +42,19 @@ func routerSetup(db SpenderDB) (r *mux.Router) {
 	r.HandleFunc("/contact", func(w http.ResponseWriter, r *http.Request) {
 		viewsMaker.RenderView(w, "contact", nil)
 	})
-	r.HandleFunc("/about", func(w http.ResponseWriter, r *http.Request) {
-		viewsMaker.RenderView(w, "about", nil)
+	r.HandleFunc("/examples", func(w http.ResponseWriter, r *http.Request) {
+		viewsMaker.RenderView(w, "examples", nil)
 	})
+	r.HandleFunc("/page", func(w http.ResponseWriter, r *http.Request) {
+		viewsMaker.RenderView(w, "page", nil)
+	})
+	r.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
+		viewsMaker.RenderView(w, "register", nil)
+	})
+	r.HandleFunc("/debug", func(w http.ResponseWriter, r *http.Request) {
+		viewsMaker.RenderView(w, "debug", nil)
+	})
+
 	r.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
 		err := SendAPIOKResp(w, "Oh yeah...")
 		if err != nil {
@@ -47,12 +62,21 @@ func routerSetup(db SpenderDB) (r *mux.Router) {
 		}
 	})
 
-	usersHandler := NewUsersHandler(db)
+	r.HandleFunc("/harakiri", func(w http.ResponseWriter, r *http.Request) {
+		chInterrupt <- emptySignal
+		err := SendAPIOKResp(w, "Goodbye cruel world...")
+		if err != nil {
+			log.Error(err.Error())
+		}
+	})
+
+	usersHandler := NewUsersHandler(db, loginSessionManager)
 	spendingHandler := NewSpendingHandler(db)
 	spendKindHandler := NewSpendKindHandler(db)
 
 	// new users, list users, etc ...
 	r.Handle("/users", usersHandler)
+	r.Handle("/users/login", usersHandler)
 	r.Handle("/users/{username}", usersHandler)
 	// new spending, remove spending, update spendings ...
 	r.Handle("/spending/{username}", spendingHandler)
@@ -66,10 +90,16 @@ func routerSetup(db SpenderDB) (r *mux.Router) {
 }
 
 func Serve(port string) {
+	// TODO: make a type out of this file ?
+
 	// TODO: will be adapted ...
 	TestPostgresDB()
 
-	tempDB := prepareTempDB()
+	chInterrupt := make(chan signal, 1)
+	chOsInterrupt := make(chan os.Signal, 1)
+	ossignal.Notify(chOsInterrupt, os.Interrupt)
+
+	tempDB := NewTempDB()
 	for _, u := range tempDB.Users {
 		log.Debugf("user: %s", u.Username)
 	}
@@ -79,8 +109,17 @@ func Serve(port string) {
 		log.Debugf("using default port: %s", port)
 	}
 
-	router := routerSetup(tempDB)
+	// we need a webserver to get the pprof webserver
+	pprofhost := "localhost"
+	pprofport := "5002"
+	go func() {
+		log.Debugf("starting pprof server on [%s:%s] ...", pprofhost, pprofport)
+		log.Debugln(http.ListenAndServe(pprofhost+":"+pprofport, nil))
+	}()
+
+	router := routerSetup(tempDB, chInterrupt)
 	ipAndPort := fmt.Sprintf("%s:%s", IPAddress, port)
+
 	httpServer := &http.Server{
 		Handler:      router,
 		Addr:         ipAndPort,
@@ -88,61 +127,31 @@ func Serve(port string) {
 		ReadTimeout:  15 * time.Second,
 	}
 
-	log.Infof(" > server listening on: [%s]", ipAndPort)
-	log.Fatal(httpServer.ListenAndServe())
+	go func() {
+		log.Infof(" > server listening on: [%s]", ipAndPort)
+		log.Fatal(httpServer.ListenAndServe())
+	}()
+
+	select {
+	case <-chInterrupt:
+		log.Warn("received harakiri signal, killing myself ...")
+	case <-chOsInterrupt:
+		log.Warn("os interrupt received ...")
+	}
+	gracefulShutdown(httpServer)
 }
 
-func prepareTempDB() *TempDB {
-	skNightlife := SpendKind{"nightlife"}
-	skTravel := SpendKind{"travel"}
-	skFood := SpendKind{"food"}
-	skRent := SpendKind{"rent"}
-	defSpendKinds := []SpendKind{skNightlife, skTravel, skFood, skRent}
+func gracefulShutdown(httpServer *http.Server) {
+	log.Debug("graceful shutdown initiated ...")
 
-	adminUser := NewUser("admin", defSpendKinds)
-	adminUser.Spendings = append(adminUser.Spendings, Spending{
-		Amount:   100,
-		Currency: "RSD",
-		Kind:     skNightlife,
-	})
-	adminUser.Spendings = append(adminUser.Spendings, Spending{
-		Amount:   2300,
-		Currency: "RSD",
-		Kind:     skTravel,
-	})
-	lazarUser := NewUser("lazar", defSpendKinds)
-	lazarUser.Spendings = append(lazarUser.Spendings, Spending{
-		Amount:   89.99,
-		Currency: "USD",
-		Kind:     skTravel,
-	})
-
-	tempDB := NewTempDB()
-	err := tempDB.StoreUser(adminUser)
+	maxWaitDuration := time.Second * 15
+	ctx, cancel := context.WithTimeout(context.Background(), maxWaitDuration)
+	defer cancel()
+	err := httpServer.Shutdown(ctx)
 	if err != nil {
-		log.Panic(err.Error())
-	}
-	err = tempDB.StoreUser(lazarUser)
-	if err != nil {
-		log.Panic(err.Error())
+		log.Error(" >>> failed to gracefully shutdown")
 	}
 
-	err = tempDB.StoreDefaultSpendKind(skNightlife)
-	if err != nil {
-		log.Panic(err.Error())
-	}
-	err = tempDB.StoreDefaultSpendKind(skFood)
-	if err != nil {
-		log.Panic(err.Error())
-	}
-	err = tempDB.StoreDefaultSpendKind(skRent)
-	if err != nil {
-		log.Panic(err.Error())
-	}
-	err = tempDB.StoreDefaultSpendKind(skTravel)
-	if err != nil {
-		log.Panic(err.Error())
-	}
-
-	return tempDB
+	log.Warn("server shut down")
+	os.Exit(0)
 }

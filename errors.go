@@ -2,4 +2,4 @@ package ispend
 
 import "errors"
 
-var ErrNotFound = errors.New("Not Found")
+var ErrNotFound = errors.New("not found")

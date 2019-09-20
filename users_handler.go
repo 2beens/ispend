@@ -9,12 +9,14 @@ import (
 )
 
 type UsersHandler struct {
-	db SpenderDB
+	db                  SpenderDB
+	loginSessionHandler *LoginSessionHandler
 }
 
-func NewUsersHandler(db SpenderDB) *UsersHandler {
+func NewUsersHandler(db SpenderDB, loginSessionHandler *LoginSessionHandler) *UsersHandler {
 	return &UsersHandler{
-		db: db,
+		db:                  db,
+		loginSessionHandler: loginSessionHandler,
 	}
 }
 
@@ -31,6 +33,8 @@ func (handler *UsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		if r.URL.Path == "/users" {
 			handler.handleNewUser(w, r)
+		} else if r.URL.Path == "/users/login" {
+			handler.handleLogin(w, r)
 		} else {
 			handler.handleUnknownPath(w)
 		}
@@ -67,11 +71,55 @@ func (handler *UsersHandler) handleGetUser(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Request) {
+func (handler *UsersHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		log.Errorf("error parsing form values [/users]: %s", err.Error())
+		log.Errorf("error parsing form values [%s]: %s", r.URL.Path, err.Error())
 		return
 	}
+
+	password := r.FormValue("password")
+	if password == "" {
+		_ = SendAPIErrorResp(w, "missing password", http.StatusBadRequest)
+		return
+	}
+	username := r.FormValue("username")
+	if username == "" {
+		_ = SendAPIErrorResp(w, "missing username", http.StatusBadRequest)
+		return
+	}
+
+	user, err := handler.db.GetUser(username)
+	if err != nil && err != ErrNotFound {
+		log.Errorf("error while logging user: %s", err.Error())
+		_ = SendAPIErrorResp(w, "server error", http.StatusInternalServerError)
+		return
+	}
+	if user == nil {
+		_ = SendAPIErrorResp(w, "error, user does not exists", http.StatusBadRequest)
+		return
+	}
+	if user.Password != password {
+		_ = SendAPIErrorResp(w, "wrong username/password", http.StatusBadRequest)
+		return
+	}
+
+	cookieID := handler.loginSessionHandler.New(username)
+	_ = SendAPIOKRespWithData(w, "success", cookieID)
+}
+
+func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		log.Errorf("error parsing form values [%s]: %s", r.URL.Path, err.Error())
+		return
+	}
+
+	password := r.FormValue("password")
+	if password == "" {
+		_ = SendAPIErrorResp(w, "missing password", http.StatusBadRequest)
+		return
+	}
+
+	// TODO: hash password
 
 	username := r.FormValue("username")
 	if username == "" {
@@ -89,13 +137,15 @@ func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	log.Tracef("creating new user [%s], pass:[%s]...", username, password)
+
 	spKinds, err := handler.db.GetAllDefaultSpendKinds()
 	if err != nil {
 		log.Errorf("error getting spend kinds: %s", err.Error())
 		_ = SendAPIErrorResp(w, "server error", http.StatusInternalServerError)
 		return
 	}
-	user := NewUser(username, spKinds)
+	user := NewUser(username, password, spKinds)
 	err = handler.db.StoreUser(user)
 	if err != nil {
 		log.Errorf("error while adding new user: %s", err.Error())
@@ -107,6 +157,8 @@ func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		log.Errorf("error while adding new user: %s", err.Error())
 	}
+
+	log.Tracef("creating new user [%s] created", username)
 }
 
 func (handler *UsersHandler) handleUnknownPath(w http.ResponseWriter) {

@@ -1,15 +1,21 @@
 package ispend
 
+import "log"
+
 type TempDB struct {
 	DefaultSpendKinds []SpendKind
 	Users             []User
 }
 
 func NewTempDB() *TempDB {
-	return &TempDB{
+	tempDB := &TempDB{
 		DefaultSpendKinds: []SpendKind{},
 		Users:             []User{},
 	}
+
+	tempDB.prepareDebuggingData()
+
+	return tempDB
 }
 
 func (db *TempDB) StoreDefaultSpendKind(kind SpendKind) error {
@@ -68,4 +74,58 @@ func (db *TempDB) GetSpendings(username string) ([]Spending, error) {
 		return nil, err
 	}
 	return user.Spendings, nil
+}
+
+func (db *TempDB) prepareDebuggingData() *TempDB {
+	skNightlife := SpendKind{"nightlife"}
+	skTravel := SpendKind{"travel"}
+	skFood := SpendKind{"food"}
+	skRent := SpendKind{"rent"}
+	defSpendKinds := []SpendKind{skNightlife, skTravel, skFood, skRent}
+
+	adminUser := NewUser("admin", "admin1", defSpendKinds)
+	adminUser.Spendings = append(adminUser.Spendings, Spending{
+		Amount:   100,
+		Currency: "RSD",
+		Kind:     skNightlife,
+	})
+	adminUser.Spendings = append(adminUser.Spendings, Spending{
+		Amount:   2300,
+		Currency: "RSD",
+		Kind:     skTravel,
+	})
+	lazarUser := NewUser("lazar", "lazar1", defSpendKinds)
+	lazarUser.Spendings = append(lazarUser.Spendings, Spending{
+		Amount:   89.99,
+		Currency: "USD",
+		Kind:     skTravel,
+	})
+
+	err := db.StoreUser(adminUser)
+	if err != nil {
+		log.Panic(err.Error())
+	}
+	err = db.StoreUser(lazarUser)
+	if err != nil {
+		log.Panic(err.Error())
+	}
+
+	err = db.StoreDefaultSpendKind(skNightlife)
+	if err != nil {
+		log.Panic(err.Error())
+	}
+	err = db.StoreDefaultSpendKind(skFood)
+	if err != nil {
+		log.Panic(err.Error())
+	}
+	err = db.StoreDefaultSpendKind(skRent)
+	if err != nil {
+		log.Panic(err.Error())
+	}
+	err = db.StoreDefaultSpendKind(skTravel)
+	if err != nil {
+		log.Panic(err.Error())
+	}
+
+	return db
 }

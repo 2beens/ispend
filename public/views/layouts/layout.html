@@ -1,36 +1,38 @@
 {{ define "layout" }}
-    <!DOCTYPE html>
-    <html lang="en">
+    <!DOCTYPE HTML>
+    <html>
+
     <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-        <meta name="description" content="iSpend App">
+        <title>iSpend</title>
+        <meta name="description" content="iSpend App"/>
         <meta name="author" content="Srdjan Tubin">
+        <meta name="keywords" content="website keywords, website keywords"/>
+        <meta http-equiv="content-type" content="text/html; charset=windows-1252"/>
         <link rel="icon" href="public/favicon.ico">
 
         <title>iSpend</title>
 
-        <!-- Main CSS -->
-        <link href="public/css/main.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="public/css/style.css" title="style"/>
 
         <!-- Libs -->
-        <link href="public/libs/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
-{{/*        <link href="public/libs/toastr/build/toastr.min.css" rel="stylesheet"/>*/}}
+        <link href="public/libs/toastr/build/toastr.min.css" rel="stylesheet"/>
     </head>
-
     <body>
     <script src="public/libs/jquery/dist/jquery.min.js"></script>
-{{/*    <script src="public/libs/toastr/build/toastr.min.js"></script>*/}}
-    <script src="public/js/main.js"></script>
+    <script src="public/libs/toastr/build/toastr.min.js"></script>
 
-    <div class="container">
-        {{template "navbar" .}}
+    <div id="main">
+        <div class="container">
+            {{template "navbar" .}}
 
-        {{template "content" .}}
+            <div id="site_content">
+                {{template "sidebar" .}}
+                {{template "content" .}}
+            </div>
 
-        {{template "footer" .}}
+            {{template "footer" .}}
+        </div>
     </div>
-
     </body>
     </html>
 {{end}}
