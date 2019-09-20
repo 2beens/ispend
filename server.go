@@ -1,8 +1,11 @@
 package ispend
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"os"
+	ossignal "os/signal"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -58,7 +61,6 @@ func routerSetup(db SpenderDB, chInterrupt chan signal) (r *mux.Router) {
 	})
 
 	r.HandleFunc("/harakiri", func(w http.ResponseWriter, r *http.Request) {
-		log.Warn("received harakiri signal, killing myself ...")
 		chInterrupt <- emptySignal
 		err := SendAPIOKResp(w, "Goodbye cruel world...")
 		if err != nil {
@@ -89,8 +91,10 @@ func Serve(port string) {
 	TestPostgresDB()
 
 	chInterrupt := make(chan signal, 1)
+	chOsInterrupt := make(chan os.Signal, 1)
+	ossignal.Notify(chOsInterrupt, os.Interrupt)
 
-	tempDB := prepareTempDB()
+	tempDB := NewTempDB()
 	for _, u := range tempDB.Users {
 		log.Debugf("user: %s", u.Username)
 	}
@@ -123,61 +127,26 @@ func Serve(port string) {
 		log.Fatal(httpServer.ListenAndServe())
 	}()
 
-	// wait for harakiri signal
-	<-chInterrupt
+	select {
+	case <-chInterrupt:
+		log.Warn("received harakiri signal, killing myself ...")
+	case <-chOsInterrupt:
+		log.Warn("os interrupt received ...")
+	}
+	gracefulShutdown(httpServer)
 }
 
-func prepareTempDB() *TempDB {
-	skNightlife := SpendKind{"nightlife"}
-	skTravel := SpendKind{"travel"}
-	skFood := SpendKind{"food"}
-	skRent := SpendKind{"rent"}
-	defSpendKinds := []SpendKind{skNightlife, skTravel, skFood, skRent}
+func gracefulShutdown(httpServer *http.Server) {
+	log.Debug("graceful shutdown initiated ...")
 
-	adminUser := NewUser("admin", defSpendKinds)
-	adminUser.Spendings = append(adminUser.Spendings, Spending{
-		Amount:   100,
-		Currency: "RSD",
-		Kind:     skNightlife,
-	})
-	adminUser.Spendings = append(adminUser.Spendings, Spending{
-		Amount:   2300,
-		Currency: "RSD",
-		Kind:     skTravel,
-	})
-	lazarUser := NewUser("lazar", defSpendKinds)
-	lazarUser.Spendings = append(lazarUser.Spendings, Spending{
-		Amount:   89.99,
-		Currency: "USD",
-		Kind:     skTravel,
-	})
-
-	tempDB := NewTempDB()
-	err := tempDB.StoreUser(adminUser)
+	maxWaitDuration := time.Second * 15
+	ctx, cancel := context.WithTimeout(context.Background(), maxWaitDuration)
+	defer cancel()
+	err := httpServer.Shutdown(ctx)
 	if err != nil {
-		log.Panic(err.Error())
-	}
-	err = tempDB.StoreUser(lazarUser)
-	if err != nil {
-		log.Panic(err.Error())
+		log.Error(" >>> failed to gracefully shutdown")
 	}
 
-	err = tempDB.StoreDefaultSpendKind(skNightlife)
-	if err != nil {
-		log.Panic(err.Error())
-	}
-	err = tempDB.StoreDefaultSpendKind(skFood)
-	if err != nil {
-		log.Panic(err.Error())
-	}
-	err = tempDB.StoreDefaultSpendKind(skRent)
-	if err != nil {
-		log.Panic(err.Error())
-	}
-	err = tempDB.StoreDefaultSpendKind(skTravel)
-	if err != nil {
-		log.Panic(err.Error())
-	}
-
-	return tempDB
+	log.Warn("server shut down")
+	os.Exit(0)
 }
