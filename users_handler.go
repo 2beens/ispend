@@ -51,6 +51,37 @@ func (handler *UsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (handler *UsersHandler) handleGetMe(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	username := vars["username"]
+	cookie := vars["cookie"]
+	if username == "" {
+		_ = SendAPIErrorResp(w, "wrong username", http.StatusBadRequest)
+		return
+	}
+	if cookie == "" {
+		_ = SendAPIErrorResp(w, "must be logged in", http.StatusBadRequest)
+		return
+	}
+
+	loginSession, err := handler.loginSessionHandler.GetByCookieID(cookie)
+	if err != nil {
+		_ = SendAPIErrorResp(w, "server error 9001", http.StatusInternalServerError)
+		log.Warnf("error [%s]: %s", r.URL.Path, err.Error())
+		return
+	}
+
+	user, err := handler.db.GetUser(loginSession.Username)
+	if err != nil {
+		_ = SendAPIErrorResp(w, "server error 9002", http.StatusInternalServerError)
+		log.Warnf("error [%s]: %s", r.URL.Path, err.Error())
+		return
+	}
+
+	userDto := NewUserDTO(user)
+	_ = SendAPIOKRespWithData(w, "success", userDto)
+}
+
 func (handler *UsersHandler) handleGetAllUsers(w http.ResponseWriter, r *http.Request) {
 	users := handler.db.GetAllUsers()
 	err := SendAPIOKRespWithData(w, "success", users)
