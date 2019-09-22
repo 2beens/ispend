@@ -25,6 +25,11 @@ func (handler *UsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		if r.URL.Path == "/users" {
 			handler.handleGetAllUsers(w, r)
+		} else if r.URL.Path == "/users/me" {
+			err := SendAPIErrorResp(w, "not implemented", http.StatusInternalServerError)
+			if err != nil {
+				log.Warnf("failed to send error resp to user [%s]: %s", r.URL.Path, err.Error())
+			}
 		} else if strings.HasPrefix(r.URL.Path, "/users/") {
 			handler.handleGetUser(w, r)
 		} else {
