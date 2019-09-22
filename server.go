@@ -76,7 +76,7 @@ func routerSetup(db SpenderDB, chInterrupt chan signal) (r *mux.Router) {
 
 	// new users, list users, etc ...
 	r.Handle("/users", usersHandler)
-	r.Handle("/users/me", usersHandler)
+	r.Handle("/users/me/{username}/{cookie}", usersHandler)
 	r.Handle("/users/login", usersHandler)
 	r.Handle("/users/{username}", usersHandler)
 	// new spending, remove spending, update spendings ...
