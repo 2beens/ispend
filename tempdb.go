@@ -83,7 +83,7 @@ func (db *TempDB) prepareDebuggingData() *TempDB {
 	skRent := SpendKind{"rent"}
 	defSpendKinds := []SpendKind{skNightlife, skTravel, skFood, skRent}
 
-	adminUser := NewUser("admin", "admin1", defSpendKinds)
+	adminUser := NewUser("admin@serjspends.de", "admin", "admin1", defSpendKinds)
 	adminUser.Spendings = append(adminUser.Spendings, Spending{
 		Amount:   100,
 		Currency: "RSD",
@@ -94,7 +94,7 @@ func (db *TempDB) prepareDebuggingData() *TempDB {
 		Currency: "RSD",
 		Kind:     skTravel,
 	})
-	lazarUser := NewUser("lazar", "lazar1", defSpendKinds)
+	lazarUser := NewUser("lazar@serjspends.de", "lazar", "lazar1", defSpendKinds)
 	lazarUser.Spendings = append(lazarUser.Spendings, Spending{
 		Amount:   89.99,
 		Currency: "USD",

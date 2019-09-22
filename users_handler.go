@@ -137,6 +137,11 @@ func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	email := r.FormValue("email")
+	if email == "" {
+		log.Tracef("new user - missing email")
+	}
+
 	log.Tracef("creating new user [%s], pass:[%s]...", username, password)
 
 	spKinds, err := handler.db.GetAllDefaultSpendKinds()
@@ -145,7 +150,7 @@ func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Reques
 		_ = SendAPIErrorResp(w, "server error", http.StatusInternalServerError)
 		return
 	}
-	user := NewUser(username, password, spKinds)
+	user := NewUser(email, username, password, spKinds)
 	err = handler.db.StoreUser(user)
 	if err != nil {
 		log.Errorf("error while adding new user: %s", err.Error())

@@ -10,7 +10,7 @@ function login() {
         url: "/users/login",
         type: "POST",
         dataType: "json",                 // expected format for response
-        contentType: "application/x-www-form-urlencoded; charset=utf-8",  // send as JSON
+        contentType: "application/x-www-form-urlencoded; charset=utf-8",
         data: {username: username, password: password},
         complete: function () {
             console.log('login request complete');
