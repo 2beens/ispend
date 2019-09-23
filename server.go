@@ -26,9 +26,9 @@ func panicRecoverMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func(reqPath string) {
 			if r := recover(); r != nil {
-				log.Debugf(" >>> recovering from panic [path: %s]. error details: %v", reqPath, r)
-				log.Debug(" >>> stack trace: ")
-				log.Debug(string(debug.Stack()))
+				log.Errorf(" >>> recovering from panic [path: %s]. error details: %v", reqPath, r)
+				log.Error(" >>> stack trace: ")
+				log.Error(string(debug.Stack()))
 			}
 		}(r.URL.Path)
 		next.ServeHTTP(w, r)
