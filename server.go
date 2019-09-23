@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	ossignal "os/signal"
+	"runtime/debug"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -17,6 +18,19 @@ var loginSessionManager = NewLoginSessionHandler()
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Tracef(" ====> request path: [%s]", r.URL.Path)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func panicRecoverMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func(reqPath string) {
+			if r := recover(); r != nil {
+				log.Debugf(" >>> recovering from panic [path: %s]. error details: %v", reqPath, r)
+				log.Debug(" >>> stack trace: ")
+				log.Debug(string(debug.Stack()))
+			}
+		}(r.URL.Path)
 		next.ServeHTTP(w, r)
 	})
 }
@@ -86,6 +100,7 @@ func routerSetup(db SpenderDB, chInterrupt chan signal) (r *mux.Router) {
 	r.Handle("/spending/kind/{username}", spendKindHandler)
 
 	r.Use(loggingMiddleware)
+	r.Use(panicRecoverMiddleware)
 
 	return r
 }
