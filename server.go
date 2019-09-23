@@ -85,19 +85,31 @@ func routerSetup(db SpenderDB, chInterrupt chan signal) (r *mux.Router) {
 	})
 
 	usersHandler := NewUsersHandler(db, loginSessionManager)
-	spendingHandler := NewSpendingHandler(db)
-	spendKindHandler := NewSpendKindHandler(db)
+	spendingHandler := NewSpendingHandler(db, loginSessionManager)
+	spendKindHandler := NewSpendKindHandler(db, loginSessionManager)
 
 	// new users, list users, etc ...
 	r.Handle("/users", usersHandler)
 	r.Handle("/users/me/{username}/{cookie}", usersHandler)
 	r.Handle("/users/login", usersHandler)
 	r.Handle("/users/{username}", usersHandler)
+
 	// new spending, remove spending, update spendings ...
+	r.Handle("/spending", spendingHandler)
 	r.Handle("/spending/{username}", spendingHandler)
+
 	// new spend kind, spend kinds list, etc ...
 	r.Handle("/spending/kind", spendKindHandler)
 	r.Handle("/spending/kind/{username}", spendKindHandler)
+
+	r.HandleFunc("/panic", func(writer http.ResponseWriter, r *http.Request) {
+		// simulate a panic
+		user := &User{Username: "u1"}
+		if len(user.Spends) == 0 {
+			user = nil
+		}
+		log.Warnf(user.Username)
+	})
 
 	r.Use(loggingMiddleware)
 	r.Use(panicRecoverMiddleware)

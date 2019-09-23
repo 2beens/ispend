@@ -1,16 +1,16 @@
 package ispend
 
-type LoginSessionHandler struct {
+type LoginSessionManager struct {
 	loginSessions map[string]LoginSession
 }
 
-func NewLoginSessionHandler() *LoginSessionHandler {
-	return &LoginSessionHandler{
+func NewLoginSessionHandler() *LoginSessionManager {
+	return &LoginSessionManager{
 		loginSessions: make(map[string]LoginSession),
 	}
 }
 
-func (h *LoginSessionHandler) New(username string) string {
+func (h *LoginSessionManager) New(username string) string {
 	cookieID := GenerateRandomString(45)
 	loginSession := LoginSession{
 		Username: username,
@@ -22,7 +22,7 @@ func (h *LoginSessionHandler) New(username string) string {
 	return cookieID
 }
 
-func (h *LoginSessionHandler) Remove(username string) error {
+func (h *LoginSessionManager) Remove(username string) error {
 	if _, ok := h.loginSessions[username]; !ok {
 		return ErrNotFound
 	}
@@ -30,14 +30,14 @@ func (h *LoginSessionHandler) Remove(username string) error {
 	return nil
 }
 
-func (h *LoginSessionHandler) GetByUsername(username string) (*LoginSession, error) {
+func (h *LoginSessionManager) GetByUsername(username string) (*LoginSession, error) {
 	if ls, ok := h.loginSessions[username]; ok {
 		return &ls, nil
 	}
 	return nil, ErrNotFound
 }
 
-func (h *LoginSessionHandler) GetByCookieID(cookieID string) (*LoginSession, error) {
+func (h *LoginSessionManager) GetByCookieID(cookieID string) (*LoginSession, error) {
 	for _, ls := range h.loginSessions {
 		if ls.CookieID == cookieID {
 			return &ls, nil

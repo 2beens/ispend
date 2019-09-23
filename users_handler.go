@@ -10,13 +10,13 @@ import (
 
 type UsersHandler struct {
 	db                  SpenderDB
-	loginSessionHandler *LoginSessionHandler
+	loginSessionManager *LoginSessionManager
 }
 
-func NewUsersHandler(db SpenderDB, loginSessionHandler *LoginSessionHandler) *UsersHandler {
+func NewUsersHandler(db SpenderDB, loginSessionManager *LoginSessionManager) *UsersHandler {
 	return &UsersHandler{
 		db:                  db,
-		loginSessionHandler: loginSessionHandler,
+		loginSessionManager: loginSessionManager,
 	}
 }
 
@@ -62,7 +62,7 @@ func (handler *UsersHandler) handleGetMe(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	loginSession, err := handler.loginSessionHandler.GetByCookieID(cookie)
+	loginSession, err := handler.loginSessionManager.GetByCookieID(cookie)
 	if err != nil {
 		_ = SendAPIErrorResp(w, "server error 9001", http.StatusInternalServerError)
 		log.Warnf("error [%s]: %s", r.URL.Path, err.Error())
@@ -137,7 +137,7 @@ func (handler *UsersHandler) handleLogin(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	cookieID := handler.loginSessionHandler.New(username)
+	cookieID := handler.loginSessionManager.New(username)
 	_ = SendAPIOKRespWithData(w, "success", cookieID)
 }
 

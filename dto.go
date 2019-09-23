@@ -2,10 +2,13 @@ package ispend
 
 import "time"
 
+// TODO: would rather remove DTOs, and omit JSON transmit of sensitive data like user.password
+//			with `json:"-"`
+
 type UserDTO struct {
 	Email      string         `json:"email"`
 	Username   string         `json:"username"`
-	Spendings  []SpendingDTO  `json:"spendings"`
+	Spends     []SpendingDTO  `json:"spends"`
 	SpendKinds []SpendKindDTO `json:"spending_kinds"`
 }
 
@@ -25,28 +28,28 @@ type SpendingDTO struct {
 func NewUserDTO(user *User) UserDTO {
 	var spendKinds []SpendKindDTO
 	for _, sk := range user.SpendKinds {
-		spendKinds = append(spendKinds, NewSpendKindDTO(sk))
+		spendKinds = append(spendKinds, NewSpendKindDTO(&sk))
 	}
-	var spendings []SpendingDTO
-	for _, s := range user.Spendings {
-		spendings = append(spendings, NewSpendingDTO(s))
+	var spends []SpendingDTO
+	for _, s := range user.Spends {
+		spends = append(spends, NewSpendingDTO(&s))
 	}
 	return UserDTO{
 		Email:      user.Email,
 		Username:   user.Username,
 		SpendKinds: spendKinds,
-		Spendings:  spendings,
+		Spends:     spends,
 	}
 }
 
-func NewSpendKindDTO(spendKind SpendKind) SpendKindDTO {
+func NewSpendKindDTO(spendKind *SpendKind) SpendKindDTO {
 	return SpendKindDTO{
 		ID:   spendKind.ID,
 		Name: spendKind.Name,
 	}
 }
 
-func NewSpendingDTO(spending Spending) SpendingDTO {
+func NewSpendingDTO(spending *Spending) SpendingDTO {
 	return SpendingDTO{
 		ID:        spending.ID,
 		Currency:  spending.Currency,

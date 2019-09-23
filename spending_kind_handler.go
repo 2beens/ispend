@@ -9,12 +9,14 @@ import (
 )
 
 type SpendKindHandler struct {
-	db SpenderDB
+	db                  SpenderDB
+	loginSessionHandler *LoginSessionManager
 }
 
-func NewSpendKindHandler(db SpenderDB) *SpendingHandler {
+func NewSpendKindHandler(db SpenderDB, loginSessionManager *LoginSessionManager) *SpendingHandler {
 	return &SpendingHandler{
-		db: db,
+		db:                  db,
+		loginSessionManager: loginSessionManager,
 	}
 }
 
