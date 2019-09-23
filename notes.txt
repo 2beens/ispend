@@ -1,6 +1,11 @@
 add new user via curl
     - curl -d "username=serj" -H "Content-Type: application/x-www-form-urlencoded" -X POST http://localhost:8080/users
-deploy go web app using nginx on ubuntu 
+add new spending via curl
+    - curl -d "username=admin&currency=rsd&amount=12.01&kind_id=sk_nightlife" -H "Content-Type: application/x-www-form-urlencoded" -X POST http://localhost:8080/spending
+
+
+
+deploy go web app using nginx on ubuntu
     -https://www.digitalocean.com/community/tutorials/how-to-deploy-a-go-web-application-using-nginx-on-ubuntu-18-04
 
 my EXOSCALE cloud account
