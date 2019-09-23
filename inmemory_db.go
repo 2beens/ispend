@@ -77,25 +77,28 @@ func (db *InMemoryDB) GetSpendings(username string) ([]Spending, error) {
 }
 
 func (db *InMemoryDB) prepareDebuggingData() *InMemoryDB {
-	skNightlife := SpendKind{"nightlife"}
-	skTravel := SpendKind{"travel"}
-	skFood := SpendKind{"food"}
-	skRent := SpendKind{"rent"}
+	skNightlife := SpendKind{"sk_nightlife", "nightlife"}
+	skTravel := SpendKind{"sk_travel", "travel"}
+	skFood := SpendKind{"sk_food", "food"}
+	skRent := SpendKind{"sk_rent", "rent"}
 	defSpendKinds := []SpendKind{skNightlife, skTravel, skFood, skRent}
 
 	adminUser := NewUser("admin@serjspends.de", "admin", "admin1", defSpendKinds)
 	adminUser.Spendings = append(adminUser.Spendings, Spending{
+		ID:       "sp1",
 		Amount:   100,
 		Currency: "RSD",
 		Kind:     skNightlife,
 	})
 	adminUser.Spendings = append(adminUser.Spendings, Spending{
+		ID:       "sp2",
 		Amount:   2300,
 		Currency: "RSD",
 		Kind:     skTravel,
 	})
 	lazarUser := NewUser("lazar@serjspends.de", "lazar", "lazar1", defSpendKinds)
 	lazarUser.Spendings = append(lazarUser.Spendings, Spending{
+		ID:       "sp3",
 		Amount:   89.99,
 		Currency: "USD",
 		Kind:     skTravel,
