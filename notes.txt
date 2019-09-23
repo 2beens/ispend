@@ -9,3 +9,6 @@ my EXOSCALE cloud account
 ############### iOS
 deploy an app for testing
 https://stackoverflow.com/questions/43535693/private-ios-app#targetText=Ad%20Hoc%20Distribution%20allows%20you,the%20iOS%20Developer%20Enterprise%20Program.
+
+use postgresql in docker (in ubuntu):
+https://severalnines.com/database-blog/deploying-postgresql-docker-container

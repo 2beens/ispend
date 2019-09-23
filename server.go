@@ -100,8 +100,8 @@ func Serve(port string) {
 	chOsInterrupt := make(chan os.Signal, 1)
 	ossignal.Notify(chOsInterrupt, os.Interrupt)
 
-	tempDB := NewTempDB()
-	for _, u := range tempDB.Users {
+	inMemoryDB := NewInMemoryDB()
+	for _, u := range inMemoryDB.Users {
 		log.Debugf("user: %s", u.Username)
 	}
 
@@ -118,7 +118,7 @@ func Serve(port string) {
 		log.Debugln(http.ListenAndServe(pprofhost+":"+pprofport, nil))
 	}()
 
-	router := routerSetup(tempDB, chInterrupt)
+	router := routerSetup(inMemoryDB, chInterrupt)
 	ipAndPort := fmt.Sprintf("%s:%s", IPAddress, port)
 
 	httpServer := &http.Server{

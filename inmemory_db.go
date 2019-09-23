@@ -2,28 +2,28 @@ package ispend
 
 import "log"
 
-type TempDB struct {
+type InMemoryDB struct {
 	DefaultSpendKinds []SpendKind
 	Users             []User
 }
 
-func NewTempDB() *TempDB {
-	tempDB := &TempDB{
+func NewInMemoryDB() *InMemoryDB {
+	inMemDB := &InMemoryDB{
 		DefaultSpendKinds: []SpendKind{},
 		Users:             []User{},
 	}
 
-	tempDB.prepareDebuggingData()
+	inMemDB.prepareDebuggingData()
 
-	return tempDB
+	return inMemDB
 }
 
-func (db *TempDB) StoreDefaultSpendKind(kind SpendKind) error {
+func (db *InMemoryDB) StoreDefaultSpendKind(kind SpendKind) error {
 	db.DefaultSpendKinds = append(db.DefaultSpendKinds, kind)
 	return nil
 }
 
-func (db *TempDB) GetDefaultSpendKind(name string) (*SpendKind, error) {
+func (db *InMemoryDB) GetDefaultSpendKind(name string) (*SpendKind, error) {
 	for _, k := range db.DefaultSpendKinds {
 		if k.Name == name {
 			return &k, nil
@@ -32,20 +32,20 @@ func (db *TempDB) GetDefaultSpendKind(name string) (*SpendKind, error) {
 	return nil, ErrNotFound
 }
 
-func (db *TempDB) GetAllDefaultSpendKinds() ([]SpendKind, error) {
+func (db *InMemoryDB) GetAllDefaultSpendKinds() ([]SpendKind, error) {
 	return db.DefaultSpendKinds, nil
 }
 
-func (db *TempDB) GetSpendKinds(username string) ([]SpendKind, error) {
+func (db *InMemoryDB) GetSpendKinds(username string) ([]SpendKind, error) {
 	return nil, nil
 }
 
-func (db *TempDB) StoreUser(user User) error {
+func (db *InMemoryDB) StoreUser(user User) error {
 	db.Users = append(db.Users, user)
 	return nil
 }
 
-func (db *TempDB) GetUser(username string) (*User, error) {
+func (db *InMemoryDB) GetUser(username string) (*User, error) {
 	for _, u := range db.Users {
 		if u.Username == username {
 			return &u, nil
@@ -54,11 +54,11 @@ func (db *TempDB) GetUser(username string) (*User, error) {
 	return nil, ErrNotFound
 }
 
-func (db *TempDB) GetAllUsers() []User {
+func (db *InMemoryDB) GetAllUsers() []User {
 	return db.Users
 }
 
-func (db *TempDB) StoreSpending(username string, spending Spending) error {
+func (db *InMemoryDB) StoreSpending(username string, spending Spending) error {
 	user, err := db.GetUser(username)
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func (db *TempDB) StoreSpending(username string, spending Spending) error {
 	return nil
 }
 
-func (db *TempDB) GetSpendings(username string) ([]Spending, error) {
+func (db *InMemoryDB) GetSpendings(username string) ([]Spending, error) {
 	user, err := db.GetUser(username)
 	if err != nil {
 		return nil, err
@@ -76,7 +76,7 @@ func (db *TempDB) GetSpendings(username string) ([]Spending, error) {
 	return user.Spendings, nil
 }
 
-func (db *TempDB) prepareDebuggingData() *TempDB {
+func (db *InMemoryDB) prepareDebuggingData() *InMemoryDB {
 	skNightlife := SpendKind{"nightlife"}
 	skTravel := SpendKind{"travel"}
 	skFood := SpendKind{"food"}
