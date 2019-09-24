@@ -1,6 +1,7 @@
 package ispend
 
 import (
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
@@ -23,8 +24,10 @@ func NewSpendingHandler(db SpenderDB, loginSessionManager *LoginSessionManager) 
 func (handler *SpendingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		if strings.HasPrefix(r.URL.Path, "/spending/") {
-			log.Error("not implemented")
+		if strings.HasPrefix(r.URL.Path, "/spending/id/") {
+			handler.handleGetUserSpendingByID(w, r)
+		} else if strings.HasPrefix(r.URL.Path, "/spending/all/") {
+			handler.handleGetUserSpends(w, r)
 		} else {
 			handler.handleUnknownPath(w)
 		}
@@ -39,6 +42,50 @@ func (handler *SpendingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		if err != nil {
 			log.Errorf("failed to send error response to client. unknown request method. details: %s", err.Error())
 		}
+	}
+}
+
+func (handler *SpendingHandler) handleGetUserSpendingByID(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	username := vars["username"]
+	spendID := vars["id"]
+	user, err := handler.db.GetUser(username)
+	if err != nil {
+		sendErr := SendAPIErrorResp(w, err.Error(), http.StatusBadRequest)
+		if sendErr != nil {
+			log.Errorf("error while sending error response to client [get user spending]: %s", sendErr.Error())
+		}
+		return
+	}
+
+	for i, _ := range user.Spends {
+		if user.Spends[i].ID == spendID {
+			err = SendAPIOKRespWithData(w, "success", user.Spends[i])
+			if err != nil {
+				log.Errorf("error while sending user spends response to client [get user spending]: %s", err.Error())
+			}
+			return
+		}
+	}
+
+	_ = SendAPIErrorResp(w, "not found", http.StatusNotFound)
+}
+
+func (handler *SpendingHandler) handleGetUserSpends(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	username := vars["username"]
+	user, err := handler.db.GetUser(username)
+	if err != nil {
+		sendErr := SendAPIErrorResp(w, err.Error(), http.StatusBadRequest)
+		if sendErr != nil {
+			log.Errorf("error while sending error response to client [get all user spends]: %s", sendErr.Error())
+		}
+		return
+	}
+
+	err = SendAPIOKRespWithData(w, "success", user.Spends)
+	if err != nil {
+		log.Errorf("error while sending user spends response to client [get all spends]: %s", err.Error())
 	}
 }
 
