@@ -65,9 +65,9 @@ func (db *InMemoryDB) StoreUser(user *User) error {
 }
 
 func (db *InMemoryDB) GetUser(username string) (*User, error) {
-	for _, u := range db.Users {
-		if u.Username == username {
-			return u, nil
+	for i, _ := range db.Users {
+		if db.Users[i].Username == username {
+			return db.Users[i], nil
 		}
 	}
 	return nil, ErrNotFound
