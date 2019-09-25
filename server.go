@@ -35,7 +35,7 @@ func panicRecoverMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func routerSetup(db SpenderDB, chInterrupt chan signal) (r *mux.Router) {
+func routerSetup(isProduction bool, db SpenderDB, chInterrupt chan signal) (r *mux.Router) {
 	r = mux.NewRouter()
 
 	// server static files
@@ -65,9 +65,6 @@ func routerSetup(db SpenderDB, chInterrupt chan signal) (r *mux.Router) {
 	r.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
 		viewsMaker.RenderView(w, "register", nil)
 	})
-	r.HandleFunc("/debug", func(w http.ResponseWriter, r *http.Request) {
-		viewsMaker.RenderView(w, "debug", nil)
-	})
 
 	r.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
 		err := SendAPIOKResp(w, "Oh yeah...")
@@ -84,9 +81,15 @@ func routerSetup(db SpenderDB, chInterrupt chan signal) (r *mux.Router) {
 		}
 	})
 
+	logsPath := "/Users/2beens/Documents/projects/ispend"
+	if isProduction {
+		logsPath = "/root/ispend"
+	}
+
 	usersHandler := NewUsersHandler(db, loginSessionManager)
 	spendingHandler := NewSpendingHandler(db, loginSessionManager)
 	spendKindHandler := NewSpendKindHandler(db, loginSessionManager)
+	debugHandler := NewDebugHandler(viewsMaker, logsPath, "ispend.log")
 
 	// new users, list users, etc ...
 	r.Handle("/users", usersHandler)
@@ -103,14 +106,9 @@ func routerSetup(db SpenderDB, chInterrupt chan signal) (r *mux.Router) {
 	r.Handle("/spending/kind", spendKindHandler)
 	r.Handle("/spending/kind/{username}", spendKindHandler)
 
-	r.HandleFunc("/panic", func(writer http.ResponseWriter, r *http.Request) {
-		// simulate a panic
-		user := &User{Username: "u1"}
-		if len(user.Spends) == 0 {
-			user = nil
-		}
-		log.Warnf(user.Username)
-	})
+	// debug & misc
+	r.Handle("/debug", debugHandler)
+	r.Handle("/debug/logs", debugHandler)
 
 	r.Use(loggingMiddleware)
 	r.Use(panicRecoverMiddleware)
@@ -118,7 +116,7 @@ func routerSetup(db SpenderDB, chInterrupt chan signal) (r *mux.Router) {
 	return r
 }
 
-func Serve(port string) {
+func Serve(port string, environment string) {
 	// TODO: make a type out of this file ?
 
 	// TODO: will be adapted ...
@@ -146,7 +144,9 @@ func Serve(port string) {
 		log.Debugln(http.ListenAndServe(pprofhost+":"+pprofport, nil))
 	}()
 
-	router := routerSetup(inMemoryDB, chInterrupt)
+	isProduction := environment == "p" || environment == "production"
+
+	router := routerSetup(isProduction, inMemoryDB, chInterrupt)
 	ipAndPort := fmt.Sprintf("%s:%s", IPAddress, port)
 
 	httpServer := &http.Server{
