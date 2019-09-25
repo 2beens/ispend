@@ -63,7 +63,7 @@ func (pdb *PostgresDBClient) TestGetAllUsers() {
 		log.Errorf(err.Error())
 	}
 
-	log.Debugf("test db - users count: %d", len(columns))
+	log.Debugf("test db - users, columns count: %d", len(columns))
 }
 
 func (pdb *PostgresDBClient) TestSelectRow() {
