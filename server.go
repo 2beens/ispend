@@ -116,11 +116,16 @@ func routerSetup(isProduction bool, db SpenderDB, chInterrupt chan signal) (r *m
 	return r
 }
 
+// TODO: make a type/struct out of this file ?
 func Serve(port string, environment string) {
-	// TODO: make a type out of this file ?
-
-	// TODO: will be adapted ...
-	TestPostgresDB()
+	postgresDB := NewPostgresDBClient("ispenddb", "2beens", "disable")
+	err := postgresDB.Open()
+	if err != nil {
+		log.Errorf("cannot open PS DB connection: %s", err.Error())
+	} else {
+		postgresDB.TestGetAllUsers()
+		postgresDB.TestSelectRow()
+	}
 
 	chInterrupt := make(chan signal, 1)
 	chOsInterrupt := make(chan os.Signal, 1)
@@ -167,16 +172,23 @@ func Serve(port string, environment string) {
 	case <-chOsInterrupt:
 		log.Warn("os interrupt received ...")
 	}
-	gracefulShutdown(httpServer)
+	gracefulShutdown(httpServer, postgresDB)
 }
 
-func gracefulShutdown(httpServer *http.Server) {
+func gracefulShutdown(httpServer *http.Server, postgresDB *PostgresDBClient) {
 	log.Debug("graceful shutdown initiated ...")
+
+	err := postgresDB.Close()
+	if err != nil {
+		log.Warnf("failed to close postgres DB: " + err.Error())
+	} else {
+		log.Debug("postgres DB connection closed ...")
+	}
 
 	maxWaitDuration := time.Second * 15
 	ctx, cancel := context.WithTimeout(context.Background(), maxWaitDuration)
 	defer cancel()
-	err := httpServer.Shutdown(ctx)
+	err = httpServer.Shutdown(ctx)
 	if err != nil {
 		log.Error(" >>> failed to gracefully shutdown")
 	}

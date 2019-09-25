@@ -2,27 +2,52 @@ package ispend
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
 
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
 )
 
-func TestPostgresDB() {
-	sslMode := "disable"
-	connStr := "user=2beens dbname=ispenddb sslmode=" + sslMode
-	db, err := sql.Open("postgres", connStr)
-	defer func() {
-		if db != nil {
-			db.Close()
-		}
-	}()
+type PostgresDBClient struct {
+	db      *sql.DB
+	sslMode string
+	dbUser  string
+	dbName  string
+}
 
+func NewPostgresDBClient(dbName string, dbUser string, sslMode string) *PostgresDBClient {
+	return &PostgresDBClient{
+		sslMode: sslMode,
+		dbUser:  dbUser,
+		dbName:  dbName,
+	}
+}
+
+func (pdb *PostgresDBClient) Open() error {
+	connStr := fmt.Sprintf("user=%s dbname=%s sslmode=%s", pdb.dbUser, pdb.dbName, pdb.sslMode)
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		log.Errorf("cannot open PS DB connection: %s", err.Error())
-		return
+		return err
 	}
 
-	rows, err := db.Query("SELECT * FROM users")
+	pdb.db = db
+	return nil
+}
+
+func (pdb *PostgresDBClient) Close() error {
+	if pdb.db == nil {
+		return errors.New("postgres DB client is nil, cannot close")
+	}
+	err := pdb.db.Close()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (pdb *PostgresDBClient) TestGetAllUsers() {
+	rows, err := pdb.db.Query("SELECT * FROM users")
 	defer func() {
 		if rows != nil {
 			rows.Close()
@@ -39,4 +64,24 @@ func TestPostgresDB() {
 	}
 
 	log.Debugf("test db - users count: %d", len(columns))
+}
+
+func (pdb *PostgresDBClient) TestSelectRow() {
+	username := "admin"
+	var column string
+	sqlStatement := `SELECT email FROM users WHERE username=$1`
+	row := pdb.db.QueryRow(sqlStatement, username)
+
+	log.Debugf("postgres DB, testing [%s]", sqlStatement)
+
+	err := row.Scan(&column)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Debug("zero rows found ...")
+		} else {
+			log.Warnf("postgres DB, testing error: " + err.Error())
+		}
+		return
+	}
+	log.Warnf("postgres DB, testing result: " + column)
 }
