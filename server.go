@@ -135,6 +135,22 @@ func Serve(port, environment, dbType string) {
 		} else {
 			log.Debugf("gotten user from DB: %s", adminUser.Email)
 		}
+		spendKinds, err := postgresDB.GetAllDefaultSpendKinds()
+		log.Debugf("gotten [%d] def spend kinds", len(spendKinds))
+
+		testSpend := Spending{
+			Currency: "EUR",
+			Amount:   100,
+			Kind: &SpendKind{
+				ID:   1,
+				Name: "Sex",
+			},
+			Timestamp: time.Now(),
+		}
+		err = postgresDB.StoreSpending("admin", testSpend)
+		if err != nil {
+			log.Error(err)
+		}
 	}
 
 	chInterrupt := make(chan signal, 1)

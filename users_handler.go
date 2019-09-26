@@ -189,7 +189,7 @@ func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	user := NewUser(email, username, password, spKinds)
-	err = handler.db.StoreUser(user)
+	id, err := handler.db.StoreUser(user)
 	if err != nil {
 		log.Errorf("error while adding new user: %s", err.Error())
 		_ = SendAPIErrorResp(w, "server error", http.StatusInternalServerError)
@@ -201,7 +201,7 @@ func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Reques
 		log.Errorf("error while adding new user: %s", err.Error())
 	}
 
-	log.Tracef("creating new user [%s] created", username)
+	log.Tracef("new user [ID: %d][%s] created", id, username)
 }
 
 func (handler *UsersHandler) handleUnknownPath(w http.ResponseWriter) {

@@ -92,7 +92,28 @@ func (pdb *PostgresDBClient) GetDefaultSpendKind(name string) (*SpendKind, error
 }
 
 func (pdb *PostgresDBClient) GetAllDefaultSpendKinds() ([]SpendKind, error) {
-	return nil, nil
+	rows, err := pdb.db.Query("SELECT * FROM default_spend_kinds")
+	defer pdb.closeRows(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	var spendKinds []SpendKind
+	for rows.Next() {
+		var id int
+		var name string
+		err = rows.Scan(&id, &name)
+		if err != nil {
+			return nil, err
+		}
+
+		spendKinds = append(spendKinds, SpendKind{
+			ID:   id,
+			Name: name,
+		})
+	}
+
+	return spendKinds, nil
 }
 
 func (pdb *PostgresDBClient) GetSpendKind(username string, spendingKindID int) (*SpendKind, error) {
@@ -163,8 +184,50 @@ func (pdb *PostgresDBClient) GetSpendKinds(username string) ([]SpendKind, error)
 	return spendKinds, nil
 }
 
-func (pdb *PostgresDBClient) StoreUser(user *User) error {
-	return nil
+func (pdb *PostgresDBClient) SpendKindExistsForUser(userId int, kindName string) (bool, error) {
+	var id int
+	sqlStatement := `SELECT id FROM spend_kinds WHERE user_id=$1 AND name=$2`
+	row := pdb.db.QueryRow(sqlStatement, userId, kindName)
+	err := row.Scan(&id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, ErrNotFound
+		}
+		log.Errorf("postgres DB error 10022: " + err.Error())
+		return false, err
+	}
+	return true, nil
+}
+
+func (pdb *PostgresDBClient) StoreSpendKind(username string, kind *SpendKind) (int, error) {
+	userId, err := pdb.GetUserIDByUsername(username)
+	if err != nil {
+		return -1, err
+	}
+
+	sqlStatement := `
+		INSERT INTO spend_kinds (user_id, name)
+		VALUES ($1, $2)
+		RETURNING id`
+	id := -1
+	err = pdb.db.QueryRow(sqlStatement, userId, kind.Name).Scan(&id)
+	if err != nil {
+		return id, err
+	}
+	return id, nil
+}
+
+func (pdb *PostgresDBClient) StoreUser(user *User) (int, error) {
+	sqlStatement := `
+		INSERT INTO users (email, username, password)
+		VALUES ($1, $2, $3)
+		RETURNING id`
+	id := 0
+	err := pdb.db.QueryRow(sqlStatement, user.Email, user.Username, user.Password).Scan(&id)
+	if err != nil {
+		return id, err
+	}
+	return id, nil
 }
 
 func (pdb *PostgresDBClient) GetUser(username string) (*User, error) {
@@ -246,6 +309,33 @@ func (pdb *PostgresDBClient) GetAllUsers() (Users, error) {
 }
 
 func (pdb *PostgresDBClient) StoreSpending(username string, spending Spending) error {
+	userId, err := pdb.GetUserIDByUsername(username)
+	if err != nil {
+		return err
+	}
+
+	var spendKindId int
+	spendKindExists, err := pdb.SpendKindExistsForUser(userId, spending.Kind.Name)
+	if spendKindExists {
+		spendKindId = spending.Kind.ID
+	} else {
+		spendKindId, err = pdb.StoreSpendKind(username, spending.Kind)
+		if err != nil {
+			return err
+		}
+	}
+
+	sqlStatement := `
+		INSERT INTO spends (currency, amount, spend_timestamp, user_id, kind_id)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id`
+	id := 0
+	err = pdb.db.QueryRow(
+		sqlStatement, spending.Currency, spending.Amount, spending.Timestamp, userId, spendKindId,
+	).Scan(&id)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

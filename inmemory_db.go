@@ -59,9 +59,13 @@ func (db *InMemoryDB) GetSpendKinds(username string) ([]SpendKind, error) {
 	return user.SpendKinds, nil
 }
 
-func (db *InMemoryDB) StoreUser(user *User) error {
+func (db *InMemoryDB) StoreSpendKind(username string, kind *SpendKind) (int, error) {
+	return -1, nil
+}
+
+func (db *InMemoryDB) StoreUser(user *User) (int, error) {
 	db.Users = append(db.Users, user)
-	return nil
+	return 0, nil
 }
 
 func (db *InMemoryDB) GetUser(username string) (*User, error) {
@@ -123,11 +127,11 @@ func (db *InMemoryDB) prepareDebuggingData() *InMemoryDB {
 		Kind:     &skTravel,
 	})
 
-	err := db.StoreUser(adminUser)
+	_, err := db.StoreUser(adminUser)
 	if err != nil {
 		log.Panic(err.Error())
 	}
-	err = db.StoreUser(lazarUser)
+	_, err = db.StoreUser(lazarUser)
 	if err != nil {
 		log.Panic(err.Error())
 	}

@@ -32,7 +32,7 @@ CREATE TABLE spends (
     user_id integer NOT NULL,
     kind_id integer NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (kind_id) REFERENCES spend_kinds(id) ON DELETE CASCADE
+    FOREIGN KEY (kind_id) REFERENCES spend_kinds(id) -- ON DELETE CASCADE
 );
 
 INSERT INTO default_spend_kinds (name) VALUES ('Travel');
