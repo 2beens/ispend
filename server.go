@@ -118,7 +118,7 @@ func routerSetup(isProduction bool, db SpenderDB, chInterrupt chan signal) (r *m
 
 // TODO: make a type/struct out of this file ?
 func Serve(port string, environment string) {
-	postgresDB := NewPostgresDBClient("ispenddb", "2beens", "disable")
+	postgresDB := NewPostgresDBClient("localhost", 5432, "ispenddb", "2beens", "", "disable")
 	err := postgresDB.Open()
 	if err != nil {
 		log.Errorf("cannot open PS DB connection: %s", err.Error())

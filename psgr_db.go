@@ -10,26 +10,52 @@ import (
 )
 
 type PostgresDBClient struct {
-	db      *sql.DB
-	sslMode string
-	dbUser  string
-	dbName  string
+	db         *sql.DB
+	sslMode    string
+	dbHost     string
+	dbPort     int
+	dbUser     string
+	dbName     string
+	dbPassword string
 }
 
-func NewPostgresDBClient(dbName string, dbUser string, sslMode string) *PostgresDBClient {
+func NewPostgresDBClient(dbHost string, dbPort int, dbName string, dbUser string, dbPassword string, sslMode string) *PostgresDBClient {
 	return &PostgresDBClient{
-		sslMode: sslMode,
-		dbUser:  dbUser,
-		dbName:  dbName,
+		sslMode:    sslMode,
+		dbHost:     dbHost,
+		dbPort:     dbPort,
+		dbUser:     dbUser,
+		dbPassword: dbPassword,
+		dbName:     dbName,
 	}
 }
 
 func (pdb *PostgresDBClient) Open() error {
-	connStr := fmt.Sprintf("user=%s dbname=%s sslmode=%s", pdb.dbUser, pdb.dbName, pdb.sslMode)
+	var connStr string
+	if pdb.sslMode == "disable" {
+		connStr = fmt.Sprintf(
+			"host=%s port=%d user=%s dbname=%s sslmode=%s",
+			pdb.dbHost, pdb.dbPort, pdb.dbUser, pdb.dbName, pdb.sslMode,
+		)
+	} else {
+		connStr = fmt.Sprintf(
+			"host=%s port=%d user=%s dbname=%s password=%s sslmode=%s",
+			pdb.dbHost, pdb.dbPort, pdb.dbUser, pdb.dbName, pdb.dbPassword, pdb.sslMode,
+		)
+	}
+
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return err
 	}
+
+	err = db.Ping()
+	if err != nil {
+		log.Error("failed to ping postgres db")
+		return err
+	}
+
+	log.Debugf("successfully connected to postgres db at: %s:%d", pdb.dbHost, pdb.dbPort)
 
 	pdb.db = db
 	return nil
@@ -44,6 +70,55 @@ func (pdb *PostgresDBClient) Close() error {
 		return err
 	}
 	return nil
+}
+
+func (pdb *PostgresDBClient) StoreDefaultSpendKind(kind SpendKind) (int, error) {
+	sqlStatement := `
+		INSERT INTO default_spend_kinds (name)
+		VALUES ($1)
+		RETURNING id`
+	id := 0
+	err := pdb.db.QueryRow(sqlStatement, kind.Name).Scan(&id)
+	if err != nil {
+		return id, err
+	}
+	return id, nil
+}
+
+func (pdb *PostgresDBClient) GetDefaultSpendKind(name string) (*SpendKind, error) {
+	return nil, nil
+}
+
+func (pdb *PostgresDBClient) GetAllDefaultSpendKinds() ([]SpendKind, error) {
+	return nil, nil
+}
+
+func (pdb *PostgresDBClient) GetSpendKind(username string, spendingKindID string) (*SpendKind, error) {
+	return nil, nil
+}
+
+func (pdb *PostgresDBClient) GetSpendKinds(username string) ([]SpendKind, error) {
+	return nil, nil
+}
+
+func (pdb *PostgresDBClient) StoreUser(user *User) error {
+	return nil
+}
+
+func (pdb *PostgresDBClient) GetUser(username string) (*User, error) {
+	return nil, nil
+}
+
+func (pdb *PostgresDBClient) GetAllUsers() Users {
+	return nil
+}
+
+func (pdb *PostgresDBClient) StoreSpending(username string, spending Spending) error {
+	return nil
+}
+
+func (pdb *PostgresDBClient) GetSpendings(username string) ([]Spending, error) {
+	return nil, nil
 }
 
 func (pdb *PostgresDBClient) TestGetAllUsers() {
