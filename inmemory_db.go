@@ -36,7 +36,7 @@ func (db *InMemoryDB) GetAllDefaultSpendKinds() ([]SpendKind, error) {
 	return db.DefaultSpendKinds, nil
 }
 
-func (db *InMemoryDB) GetSpendKind(username string, spendingKindID string) (*SpendKind, error) {
+func (db *InMemoryDB) GetSpendKind(username string, spendingKindID int) (*SpendKind, error) {
 	user, err := db.GetUser(username)
 	if err != nil {
 		return nil, err
@@ -96,10 +96,10 @@ func (db *InMemoryDB) GetSpendings(username string) ([]Spending, error) {
 }
 
 func (db *InMemoryDB) prepareDebuggingData() *InMemoryDB {
-	skNightlife := SpendKind{"sk_nightlife", "nightlife"}
-	skTravel := SpendKind{"sk_travel", "travel"}
-	skFood := SpendKind{"sk_food", "food"}
-	skRent := SpendKind{"sk_rent", "rent"}
+	skNightlife := SpendKind{1, "nightlife"}
+	skTravel := SpendKind{2, "travel"}
+	skFood := SpendKind{3, "food"}
+	skRent := SpendKind{4, "rent"}
 	defSpendKinds := []SpendKind{skNightlife, skTravel, skFood, skRent}
 
 	adminUser := NewUser("admin@serjspends.de", "admin", "admin1", defSpendKinds)

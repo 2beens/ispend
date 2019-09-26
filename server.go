@@ -125,13 +125,13 @@ func Serve(port string, environment string) {
 	} else {
 		postgresDB.TestGetAllUsers()
 		postgresDB.TestSelectRow()
-	}
 
-	allUsers, err := postgresDB.GetAllUsers()
-	if err != nil {
-		log.Error(err)
+		allUsers, err := postgresDB.GetAllUsers()
+		if err != nil {
+			log.Error(err)
+		}
+		log.Debugf("gotten [%d] users from DB", len(allUsers))
 	}
-	_ = allUsers
 
 	chInterrupt := make(chan signal, 1)
 	chOsInterrupt := make(chan os.Signal, 1)

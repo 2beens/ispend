@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
 
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
@@ -97,6 +99,25 @@ func (pdb *PostgresDBClient) GetSpendKind(username string, spendingKindID string
 	return nil, nil
 }
 
+func (pdb *PostgresDBClient) GetSpendKindByID(id int) (*SpendKind, error) {
+	var column string
+	sqlStatement := `SELECT name FROM spend_kinds WHERE id=$1`
+	row := pdb.db.QueryRow(sqlStatement, id)
+
+	err := row.Scan(&column)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNotFound
+		}
+		log.Errorf("postgres DB error 10003: " + err.Error())
+		return nil, err
+	}
+	return &SpendKind{
+		ID:   id,
+		Name: column,
+	}, nil
+}
+
 func (pdb *PostgresDBClient) GetSpendKinds(username string) ([]SpendKind, error) {
 	return nil, nil
 }
@@ -111,14 +132,7 @@ func (pdb *PostgresDBClient) GetUser(username string) (*User, error) {
 
 func (pdb *PostgresDBClient) GetAllUsers() (Users, error) {
 	rows, err := pdb.db.Query("SELECT * FROM users")
-	defer func() {
-		if rows != nil {
-			err := rows.Close()
-			if err != nil {
-				log.Error(err)
-			}
-		}
-	}()
+	defer pdb.closeRows(rows)
 	if err != nil {
 		return nil, err
 	}
@@ -131,12 +145,21 @@ func (pdb *PostgresDBClient) GetAllUsers() (Users, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		var spends []Spending
+		var spendKinds []SpendKind
+
+		spends, err = pdb.GetSpendings(username)
+		if err != nil {
+			return nil, err
+		}
+
 		users = append(users, &User{
 			Email:      email,
 			Username:   username,
 			Password:   password,
-			Spends:     []Spending{},
-			SpendKinds: []SpendKind{},
+			Spends:     spends,
+			SpendKinds: spendKinds,
 		})
 	}
 
@@ -148,7 +171,46 @@ func (pdb *PostgresDBClient) StoreSpending(username string, spending Spending) e
 }
 
 func (pdb *PostgresDBClient) GetSpendings(username string) ([]Spending, error) {
-	return nil, nil
+	rows, err := pdb.db.Query("SELECT * FROM spends")
+	defer pdb.closeRows(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	var spends []Spending
+	for rows.Next() {
+		var id, currency string
+		var userId, kindId int
+		var timestamp time.Time
+		var amount float32
+		err = rows.Scan(&id, &currency, &amount, &timestamp, &userId, &kindId)
+		currency = strings.TrimSpace(currency)
+		if err != nil {
+			return nil, err
+		}
+		spendKind, err := pdb.GetSpendKindByID(kindId)
+		if err != nil {
+			return nil, err
+		}
+		spends = append(spends, Spending{
+			ID:        id,
+			Currency:  currency,
+			Amount:    amount,
+			Kind:      spendKind,
+			Timestamp: timestamp,
+		})
+	}
+
+	return spends, nil
+}
+
+func (pdb *PostgresDBClient) closeRows(rows *sql.Rows) {
+	if rows != nil {
+		err := rows.Close()
+		if err != nil {
+			log.Error(err)
+		}
+	}
 }
 
 func (pdb *PostgresDBClient) TestGetAllUsers() {

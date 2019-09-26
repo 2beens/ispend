@@ -1,12 +1,13 @@
 package ispend
 
 import (
-	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 )
 
 type SpendingHandler struct {
@@ -121,7 +122,8 @@ func (handler *SpendingHandler) handleNewSpending(w http.ResponseWriter, r *http
 		_ = SendAPIErrorResp(w, "missing/wrong amount", http.StatusBadRequest)
 		return
 	}
-	kindId := r.FormValue("kind_id")
+	kindIdParam := r.FormValue("kind_id")
+	kindId, _ := strconv.Atoi(kindIdParam)
 	spendKind, err := handler.db.GetSpendKind(username, kindId)
 	if err != nil {
 		log.Errorf("new spending, error 9005: %s", err.Error())
