@@ -127,6 +127,12 @@ func Serve(port string, environment string) {
 		postgresDB.TestSelectRow()
 	}
 
+	allUsers, err := postgresDB.GetAllUsers()
+	if err != nil {
+		log.Error(err)
+	}
+	_ = allUsers
+
 	chInterrupt := make(chan signal, 1)
 	chOsInterrupt := make(chan os.Signal, 1)
 	ossignal.Notify(chOsInterrupt, os.Interrupt)

@@ -81,8 +81,12 @@ func (handler *UsersHandler) handleGetMe(w http.ResponseWriter, r *http.Request)
 }
 
 func (handler *UsersHandler) handleGetAllUsers(w http.ResponseWriter, r *http.Request) {
-	users := handler.db.GetAllUsers()
-	err := SendAPIOKRespWithData(w, "success", users)
+	users, err := handler.db.GetAllUsers()
+	if err != nil {
+		_ = SendAPIErrorResp(w, "internal server error 10002", http.StatusInternalServerError)
+		return
+	}
+	err = SendAPIOKRespWithData(w, "success", users)
 	if err != nil {
 		log.Errorf("error while sending response to client [get all users]: %s", err.Error())
 	}

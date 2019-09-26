@@ -109,8 +109,38 @@ func (pdb *PostgresDBClient) GetUser(username string) (*User, error) {
 	return nil, nil
 }
 
-func (pdb *PostgresDBClient) GetAllUsers() Users {
-	return nil
+func (pdb *PostgresDBClient) GetAllUsers() (Users, error) {
+	rows, err := pdb.db.Query("SELECT * FROM users")
+	defer func() {
+		if rows != nil {
+			err := rows.Close()
+			if err != nil {
+				log.Error(err)
+			}
+		}
+	}()
+	if err != nil {
+		return nil, err
+	}
+
+	var users Users
+	for rows.Next() {
+		var id int
+		var email, username, password string
+		err = rows.Scan(&id, &email, &username, &password)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, &User{
+			Email:      email,
+			Username:   username,
+			Password:   password,
+			Spends:     []Spending{},
+			SpendKinds: []SpendKind{},
+		})
+	}
+
+	return users, nil
 }
 
 func (pdb *PostgresDBClient) StoreSpending(username string, spending Spending) error {

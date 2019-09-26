@@ -73,8 +73,8 @@ func (db *InMemoryDB) GetUser(username string) (*User, error) {
 	return nil, ErrNotFound
 }
 
-func (db *InMemoryDB) GetAllUsers() Users {
-	return db.Users
+func (db *InMemoryDB) GetAllUsers() (Users, error) {
+	return db.Users, nil
 }
 
 func (db *InMemoryDB) StoreSpending(username string, spending Spending) error {
