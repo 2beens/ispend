@@ -18,9 +18,9 @@ func NewInMemoryDB() *InMemoryDB {
 	return inMemDB
 }
 
-func (db *InMemoryDB) StoreDefaultSpendKind(kind SpendKind) error {
+func (db *InMemoryDB) StoreDefaultSpendKind(kind SpendKind) (int, error) {
 	db.DefaultSpendKinds = append(db.DefaultSpendKinds, kind)
-	return nil
+	return kind.ID, nil
 }
 
 func (db *InMemoryDB) GetDefaultSpendKind(name string) (*SpendKind, error) {
@@ -132,19 +132,19 @@ func (db *InMemoryDB) prepareDebuggingData() *InMemoryDB {
 		log.Panic(err.Error())
 	}
 
-	err = db.StoreDefaultSpendKind(skNightlife)
+	_, err = db.StoreDefaultSpendKind(skNightlife)
 	if err != nil {
 		log.Panic(err.Error())
 	}
-	err = db.StoreDefaultSpendKind(skFood)
+	_, err = db.StoreDefaultSpendKind(skFood)
 	if err != nil {
 		log.Panic(err.Error())
 	}
-	err = db.StoreDefaultSpendKind(skRent)
+	_, err = db.StoreDefaultSpendKind(skRent)
 	if err != nil {
 		log.Panic(err.Error())
 	}
-	err = db.StoreDefaultSpendKind(skTravel)
+	_, err = db.StoreDefaultSpendKind(skTravel)
 	if err != nil {
 		log.Panic(err.Error())
 	}

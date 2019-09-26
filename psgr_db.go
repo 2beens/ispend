@@ -95,7 +95,7 @@ func (pdb *PostgresDBClient) GetAllDefaultSpendKinds() ([]SpendKind, error) {
 	return nil, nil
 }
 
-func (pdb *PostgresDBClient) GetSpendKind(username string, spendingKindID string) (*SpendKind, error) {
+func (pdb *PostgresDBClient) GetSpendKind(username string, spendingKindID int) (*SpendKind, error) {
 	return nil, nil
 }
 

@@ -13,6 +13,7 @@ func main() {
 	displayHelp := flag.Bool("h", false, "display info/help message")
 	port := flag.String("port", "", "server port")
 	env := flag.String("env", "development", "set environment [development|production] [d|p]")
+	dbType := flag.String("db", "db", "set db type [db|mem]")
 	logFileName := flag.String("logfile", "", "log file used to store server logs")
 	logLevel := flag.String("loglvl", "", "log level")
 	flag.Parse()
@@ -31,7 +32,7 @@ func main() {
 
 	loggingSetup(*logFileName, *logLevel)
 
-	ispend.Serve(*port, *env)
+	ispend.Serve(*port, *env, *dbType)
 }
 
 func loggingSetup(logFileName string, logLevel string) {

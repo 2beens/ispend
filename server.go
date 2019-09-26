@@ -7,6 +7,7 @@ import (
 	"os"
 	ossignal "os/signal"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -117,7 +118,7 @@ func routerSetup(isProduction bool, db SpenderDB, chInterrupt chan signal) (r *m
 }
 
 // TODO: make a type/struct out of this file ?
-func Serve(port string, environment string) {
+func Serve(port, environment, dbType string) {
 	postgresDB := NewPostgresDBClient("localhost", 5432, "ispenddb", "2beens", "", "disable")
 	err := postgresDB.Open()
 	if err != nil {
@@ -160,7 +161,15 @@ func Serve(port string, environment string) {
 
 	isProduction := environment == "p" || environment == "production"
 
-	router := routerSetup(isProduction, inMemoryDB, chInterrupt)
+	var router *mux.Router
+	if strings.ToLower(dbType) == "mem" {
+		router = routerSetup(isProduction, inMemoryDB, chInterrupt)
+		log.Println(" > db: using in memory db")
+	} else {
+		router = routerSetup(isProduction, postgresDB, chInterrupt)
+		log.Println(" > db: using Postgres db")
+	}
+
 	ipAndPort := fmt.Sprintf("%s:%s", IPAddress, port)
 
 	httpServer := &http.Server{
