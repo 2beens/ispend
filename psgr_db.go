@@ -100,11 +100,11 @@ func (pdb *PostgresDBClient) GetSpendKind(username string, spendingKindID string
 }
 
 func (pdb *PostgresDBClient) GetSpendKindByID(id int) (*SpendKind, error) {
-	var column string
+	var name string
 	sqlStatement := `SELECT name FROM spend_kinds WHERE id=$1`
 	row := pdb.db.QueryRow(sqlStatement, id)
 
-	err := row.Scan(&column)
+	err := row.Scan(&name)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNotFound
@@ -114,12 +114,53 @@ func (pdb *PostgresDBClient) GetSpendKindByID(id int) (*SpendKind, error) {
 	}
 	return &SpendKind{
 		ID:   id,
-		Name: column,
+		Name: name,
 	}, nil
 }
 
+func (pdb *PostgresDBClient) GetUserIDByUsername(username string) (int, error) {
+	var id int
+	sqlStatement := `SELECT id FROM users WHERE username=$1`
+	row := pdb.db.QueryRow(sqlStatement, username)
+	err := row.Scan(&id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return -1, ErrNotFound
+		}
+		log.Errorf("postgres DB error 10021: " + err.Error())
+		return -1, err
+	}
+	return id, nil
+}
+
 func (pdb *PostgresDBClient) GetSpendKinds(username string) ([]SpendKind, error) {
-	return nil, nil
+	userId, err := pdb.GetUserIDByUsername(username)
+	if err != nil {
+		return nil, err
+	}
+
+	sqlStatement := `SELECT id, name FROM spend_kinds WHERE user_id=$1`
+	rows, err := pdb.db.Query(sqlStatement, userId)
+	defer pdb.closeRows(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	var spendKinds []SpendKind
+	for rows.Next() {
+		var id int
+		var name string
+		err = rows.Scan(&id, &name)
+		if err != nil {
+			return nil, err
+		}
+		spendKinds = append(spendKinds, SpendKind{
+			ID:   id,
+			Name: name,
+		})
+	}
+
+	return spendKinds, nil
 }
 
 func (pdb *PostgresDBClient) StoreUser(user *User) error {
@@ -127,7 +168,40 @@ func (pdb *PostgresDBClient) StoreUser(user *User) error {
 }
 
 func (pdb *PostgresDBClient) GetUser(username string) (*User, error) {
-	return nil, nil
+	var id int
+	var email, password string
+	sqlStatement := `SELECT * FROM users WHERE username=$1`
+	row := pdb.db.QueryRow(sqlStatement, username)
+
+	err := row.Scan(&id, &email, &username, &password)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNotFound
+		}
+		log.Errorf("postgres DB error 10011: " + err.Error())
+		return nil, err
+	}
+
+	var spends []Spending
+	var spendKinds []SpendKind
+
+	spends, err = pdb.GetSpends(username)
+	if err != nil {
+		return nil, err
+	}
+
+	spendKinds, err = pdb.GetSpendKinds(username)
+	if err != nil {
+		return nil, err
+	}
+
+	return &User{
+		Email:      email,
+		Username:   username,
+		Password:   password,
+		Spends:     spends,
+		SpendKinds: spendKinds,
+	}, nil
 }
 
 func (pdb *PostgresDBClient) GetAllUsers() (Users, error) {
@@ -149,7 +223,12 @@ func (pdb *PostgresDBClient) GetAllUsers() (Users, error) {
 		var spends []Spending
 		var spendKinds []SpendKind
 
-		spends, err = pdb.GetSpendings(username)
+		spends, err = pdb.GetSpends(username)
+		if err != nil {
+			return nil, err
+		}
+
+		spendKinds, err = pdb.GetSpendKinds(username)
 		if err != nil {
 			return nil, err
 		}
@@ -170,8 +249,13 @@ func (pdb *PostgresDBClient) StoreSpending(username string, spending Spending) e
 	return nil
 }
 
-func (pdb *PostgresDBClient) GetSpendings(username string) ([]Spending, error) {
-	rows, err := pdb.db.Query("SELECT * FROM spends")
+func (pdb *PostgresDBClient) GetSpends(username string) ([]Spending, error) {
+	userId, err := pdb.GetUserIDByUsername(username)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := pdb.db.Query("SELECT * FROM spends WHERE user_id=$1", userId)
 	defer pdb.closeRows(rows)
 	if err != nil {
 		return nil, err
@@ -211,44 +295,4 @@ func (pdb *PostgresDBClient) closeRows(rows *sql.Rows) {
 			log.Error(err)
 		}
 	}
-}
-
-func (pdb *PostgresDBClient) TestGetAllUsers() {
-	rows, err := pdb.db.Query("SELECT * FROM users")
-	defer func() {
-		if rows != nil {
-			rows.Close()
-		}
-	}()
-	if err != nil {
-		log.Errorf("cannot query PS DB: %s", err.Error())
-		return
-	}
-
-	columns, err := rows.Columns()
-	if err != nil {
-		log.Errorf(err.Error())
-	}
-
-	log.Debugf("test db - users, columns count: %d", len(columns))
-}
-
-func (pdb *PostgresDBClient) TestSelectRow() {
-	username := "admin"
-	var column string
-	sqlStatement := `SELECT email FROM users WHERE username=$1`
-	row := pdb.db.QueryRow(sqlStatement, username)
-
-	log.Debugf("postgres DB, testing [%s]", sqlStatement)
-
-	err := row.Scan(&column)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			log.Debug("zero rows found ...")
-		} else {
-			log.Warnf("postgres DB, testing error: " + err.Error())
-		}
-		return
-	}
-	log.Warnf("postgres DB, testing result: " + column)
 }

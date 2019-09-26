@@ -123,14 +123,17 @@ func Serve(port string, environment string) {
 	if err != nil {
 		log.Errorf("cannot open PS DB connection: %s", err.Error())
 	} else {
-		postgresDB.TestGetAllUsers()
-		postgresDB.TestSelectRow()
-
 		allUsers, err := postgresDB.GetAllUsers()
 		if err != nil {
 			log.Error(err)
 		}
 		log.Debugf("gotten [%d] users from DB", len(allUsers))
+		adminUser, err := postgresDB.GetUser("admin")
+		if err != nil {
+			log.Error(err)
+		} else {
+			log.Debugf("gotten user from DB: %s", adminUser.Email)
+		}
 	}
 
 	chInterrupt := make(chan signal, 1)

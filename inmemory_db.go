@@ -87,7 +87,7 @@ func (db *InMemoryDB) StoreSpending(username string, spending Spending) error {
 	return nil
 }
 
-func (db *InMemoryDB) GetSpendings(username string) ([]Spending, error) {
+func (db *InMemoryDB) GetSpends(username string) ([]Spending, error) {
 	user, err := db.GetUser(username)
 	if err != nil {
 		return nil, err

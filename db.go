@@ -10,5 +10,5 @@ type SpenderDB interface {
 	GetUser(username string) (*User, error)
 	GetAllUsers() (Users, error)
 	StoreSpending(username string, spending Spending) error
-	GetSpendings(username string) ([]Spending, error)
+	GetSpends(username string) ([]Spending, error)
 }
