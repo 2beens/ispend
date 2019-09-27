@@ -7,7 +7,6 @@ import (
 	"os"
 	ossignal "os/signal"
 	"runtime/debug"
-	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -118,9 +117,20 @@ func routerSetup(isProduction bool, db SpenderDB, chInterrupt chan signal) (r *m
 }
 
 // TODO: make a type/struct out of this file ?
-func Serve(port, environment, dbType string) {
+func Serve(configData []byte, port, environment string) {
+	config, err := NewYamlConfig(configData)
+	if err != nil {
+		log.Fatalf("cannot read config file: %s", err.Error())
+		return
+	}
+
+	log.Debugf("using db: \t\t%s", config.DBType)
+	log.Debugf("postgres env: \t%s", config.PostgresEnv)
+	log.Debugf("using db prod: \t%s", config.DBProd.Host)
+	log.Debugf("using db dev: \t%s", config.DBDev.Host)
+
 	postgresDB := NewPostgresDBClient("localhost", 5432, "ispenddb", "2beens", "", "disable")
-	err := postgresDB.Open()
+	err = postgresDB.Open()
 	if err != nil {
 		log.Errorf("cannot open PS DB connection: %s", err.Error())
 	} else {
@@ -138,29 +148,24 @@ func Serve(port, environment, dbType string) {
 		spendKinds, err := postgresDB.GetAllDefaultSpendKinds()
 		log.Debugf("gotten [%d] def spend kinds", len(spendKinds))
 
-		testSpend := Spending{
-			Currency: "EUR",
-			Amount:   100,
-			Kind: &SpendKind{
-				ID:   1,
-				Name: "Sex",
-			},
-			Timestamp: time.Now(),
-		}
-		err = postgresDB.StoreSpending("admin", testSpend)
-		if err != nil {
-			log.Error(err)
-		}
+		//testSpend := Spending{
+		//	Currency: "EUR",
+		//	Amount:   100,
+		//	Kind: &SpendKind{
+		//		ID:   1,
+		//		Name: "Sex",
+		//	},
+		//	Timestamp: time.Now(),
+		//}
+		//err = postgresDB.StoreSpending("admin", testSpend)
+		//if err != nil {
+		//	log.Error(err)
+		//}
 	}
 
 	chInterrupt := make(chan signal, 1)
 	chOsInterrupt := make(chan os.Signal, 1)
 	ossignal.Notify(chOsInterrupt, os.Interrupt)
-
-	inMemoryDB := NewInMemoryDB()
-	for _, u := range inMemoryDB.Users {
-		log.Debugf("user: %s", u.Username)
-	}
 
 	if port == "" {
 		port = DefaultPort
@@ -178,8 +183,8 @@ func Serve(port, environment, dbType string) {
 	isProduction := environment == "p" || environment == "production"
 
 	var router *mux.Router
-	if strings.ToLower(dbType) == "mem" {
-		router = routerSetup(isProduction, inMemoryDB, chInterrupt)
+	if config.DBType == DBTypePostgres {
+		router = routerSetup(isProduction, NewInMemoryDB(), chInterrupt)
 		log.Println(" > db: using in memory db")
 	} else {
 		router = routerSetup(isProduction, postgresDB, chInterrupt)

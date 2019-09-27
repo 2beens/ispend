@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -13,7 +14,6 @@ func main() {
 	displayHelp := flag.Bool("h", false, "display info/help message")
 	port := flag.String("port", "", "server port")
 	env := flag.String("env", "development", "set environment [development|production] [d|p]")
-	dbType := flag.String("db", "db", "set db type [db|mem]")
 	logFileName := flag.String("logfile", "", "log file used to store server logs")
 	logLevel := flag.String("loglvl", "", "log level")
 	flag.Parse()
@@ -32,7 +32,22 @@ func main() {
 
 	loggingSetup(*logFileName, *logLevel)
 
-	ispend.Serve(*port, *env, *dbType)
+	yamlConfData, err := readYamlConfig()
+	if err != nil {
+		log.Fatalf("cannot open/read yaml conf file: %s", err.Error())
+	}
+
+	ispend.Serve(yamlConfData, *port, *env)
+}
+
+func readYamlConfig() ([]byte, error) {
+	yamlConfFile, err := os.Open("cmd/config.yaml")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer yamlConfFile.Close()
+
+	return ioutil.ReadAll(yamlConfFile)
 }
 
 func loggingSetup(logFileName string, logLevel string) {

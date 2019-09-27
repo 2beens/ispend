@@ -1,0 +1,24 @@
+# mem | postgres
+dbtype: postgres
+#dbtype: mem
+
+# production | dev
+postgres_env: dev
+
+# postgres DB config
+postgres_production:
+  host: 194.182.178.0
+  port: 5432
+  name: ispenddb
+  user: ubuntu
+  password: ''
+  sslMode: disable
+
+# in memory DB config
+postgres_dev:
+  host: localhost
+  port: 5432
+  name: ispenddb
+  user: 2beens
+  password: ''
+  sslMode: disable
