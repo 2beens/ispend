@@ -3,6 +3,7 @@ dbtype: postgres
 #dbtype: mem
 
 # production | dev
+#postgres_env: production
 postgres_env: dev
 
 # postgres DB config

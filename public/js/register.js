@@ -1,4 +1,5 @@
 function registerPost() {
+    var email = $('#email').val();
     var username = $('#username').val();
     var password = $('#password').val();
     if (!username || !password) {
@@ -11,7 +12,7 @@ function registerPost() {
         type: "POST",
         dataType: "json",                 // expected format for response
         contentType: "application/x-www-form-urlencoded; charset=utf-8",  // send as JSON
-        data: {username: username, password: password},
+        data: {email: email, username: username, password: password},
         complete: function () {
             console.log('register request complete');
             $('#username').val('');

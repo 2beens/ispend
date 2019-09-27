@@ -15,6 +15,8 @@ import (
 
 var loginSessionManager = NewLoginSessionHandler()
 
+var dbClient SpenderDB
+
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Tracef(" ====> request path: [%s]", r.URL.Path)
@@ -129,47 +131,12 @@ func Serve(configData []byte, port, environment string) {
 	log.Debugf("using db prod: \t%s", config.DBProd.Host)
 	log.Debugf("using db dev: \t%s", config.DBDev.Host)
 
-	postgresDB := NewPostgresDBClient("localhost", 5432, "ispenddb", "2beens", "", "disable")
-	err = postgresDB.Open()
-	if err != nil {
-		log.Errorf("cannot open PS DB connection: %s", err.Error())
-	} else {
-		allUsers, err := postgresDB.GetAllUsers()
-		if err != nil {
-			log.Error(err)
-		}
-		log.Debugf("gotten [%d] users from DB", len(allUsers))
-		adminUser, err := postgresDB.GetUser("admin")
-		if err != nil {
-			log.Error(err)
-		} else {
-			log.Debugf("gotten user from DB: %s", adminUser.Email)
-		}
-		spendKinds, err := postgresDB.GetAllDefaultSpendKinds()
-		log.Debugf("gotten [%d] def spend kinds", len(spendKinds))
-
-		//testSpend := Spending{
-		//	Currency: "EUR",
-		//	Amount:   100,
-		//	Kind: &SpendKind{
-		//		ID:   1,
-		//		Name: "Sex",
-		//	},
-		//	Timestamp: time.Now(),
-		//}
-		//err = postgresDB.StoreSpending("admin", testSpend)
-		//if err != nil {
-		//	log.Error(err)
-		//}
-	}
-
 	chInterrupt := make(chan signal, 1)
 	chOsInterrupt := make(chan os.Signal, 1)
 	ossignal.Notify(chOsInterrupt, os.Interrupt)
 
 	if port == "" {
 		port = DefaultPort
-		log.Debugf("using default port: %s", port)
 	}
 
 	// we need a webserver to get the pprof webserver
@@ -184,11 +151,25 @@ func Serve(configData []byte, port, environment string) {
 
 	var router *mux.Router
 	if config.DBType == DBTypePostgres {
-		router = routerSetup(isProduction, NewInMemoryDB(), chInterrupt)
-		log.Println(" > db: using in memory db")
-	} else {
-		router = routerSetup(isProduction, postgresDB, chInterrupt)
+		dbClient = NewPostgresDBClient(
+			config.GetPostgresHost(),
+			config.GetPostgresPort(),
+			config.GetPostgresDBName(),
+			config.GetPostgresDBUsername(),
+			config.GetPostgresDBPassword(),
+			config.GetPostgresDBSSLMode(),
+		)
+		err = dbClient.Open()
+		if err != nil {
+			log.Errorf("cannot open PS DB connection: %s", err.Error())
+		}
+
+		router = routerSetup(isProduction, dbClient, chInterrupt)
 		log.Println(" > db: using Postgres db")
+	} else {
+		dbClient = NewInMemoryDB()
+		router = routerSetup(isProduction, dbClient, chInterrupt)
+		log.Println(" > db: using in memory db")
 	}
 
 	ipAndPort := fmt.Sprintf("%s:%s", IPAddress, port)
@@ -211,13 +192,13 @@ func Serve(configData []byte, port, environment string) {
 	case <-chOsInterrupt:
 		log.Warn("os interrupt received ...")
 	}
-	gracefulShutdown(httpServer, postgresDB)
+	gracefulShutdown(httpServer, dbClient)
 }
 
-func gracefulShutdown(httpServer *http.Server, postgresDB *PostgresDBClient) {
+func gracefulShutdown(httpServer *http.Server, dbClient SpenderDB) {
 	log.Debug("graceful shutdown initiated ...")
 
-	err := postgresDB.Close()
+	err := dbClient.Close()
 	if err != nil {
 		log.Warnf("failed to close postgres DB: " + err.Error())
 	} else {

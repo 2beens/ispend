@@ -1,6 +1,9 @@
 package ispend
 
 type SpenderDB interface {
+	Open() error
+	Close() error
+
 	StoreDefaultSpendKind(kind SpendKind) (int, error)
 	GetDefaultSpendKind(name string) (*SpendKind, error)
 	GetAllDefaultSpendKinds() ([]SpendKind, error)

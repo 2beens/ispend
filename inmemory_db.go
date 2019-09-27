@@ -18,6 +18,14 @@ func NewInMemoryDB() *InMemoryDB {
 	return inMemDB
 }
 
+func (db *InMemoryDB) Open() error {
+	return nil
+}
+
+func (db *InMemoryDB) Close() error {
+	return nil
+}
+
 func (db *InMemoryDB) StoreDefaultSpendKind(kind SpendKind) (int, error) {
 	db.DefaultSpendKinds = append(db.DefaultSpendKinds, kind)
 	return kind.ID, nil
