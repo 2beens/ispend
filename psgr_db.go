@@ -55,6 +55,8 @@ func (pdb *PostgresDBClient) Open() error {
 	if err != nil {
 		log.Error("failed to ping postgres db")
 		return err
+	} else {
+		log.Trace("successful postgres DB ping!")
 	}
 
 	log.Debugf("successfully connected to postgres db at: %s:%d", pdb.dbHost, pdb.dbPort)
