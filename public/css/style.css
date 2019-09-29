@@ -289,3 +289,18 @@ table tr td
 { background: #F0EFE2;
   color: #47433F;
   border-top: 1px solid #FFF;}
+
+/*
+my shit bellow:
+*/
+#ispend-mascot {
+  margin-top: 30px;
+  float: right;
+  margin-left: 80%;
+}
+
+#ispend-mascot-image {
+  border-radius: 35%;
+  /*width: 150px;*/
+  max-width: 80%;
+}
