@@ -31,15 +31,6 @@ func (db *InMemoryDB) StoreDefaultSpendKind(kind SpendKind) (int, error) {
 	return kind.ID, nil
 }
 
-func (db *InMemoryDB) GetDefaultSpendKind(name string) (*SpendKind, error) {
-	for _, k := range db.DefaultSpendKinds {
-		if k.Name == name {
-			return &k, nil
-		}
-	}
-	return nil, ErrNotFound
-}
-
 func (db *InMemoryDB) GetAllDefaultSpendKinds() ([]SpendKind, error) {
 	return db.DefaultSpendKinds, nil
 }

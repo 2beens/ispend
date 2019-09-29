@@ -89,10 +89,6 @@ func (pdb *PostgresDBClient) StoreDefaultSpendKind(kind SpendKind) (int, error) 
 	return id, nil
 }
 
-func (pdb *PostgresDBClient) GetDefaultSpendKind(name string) (*SpendKind, error) {
-	return nil, nil
-}
-
 func (pdb *PostgresDBClient) GetAllDefaultSpendKinds() ([]SpendKind, error) {
 	rows, err := pdb.db.Query("SELECT * FROM default_spend_kinds")
 	defer pdb.closeRows(rows)
@@ -119,7 +115,29 @@ func (pdb *PostgresDBClient) GetAllDefaultSpendKinds() ([]SpendKind, error) {
 }
 
 func (pdb *PostgresDBClient) GetSpendKind(username string, spendingKindID int) (*SpendKind, error) {
-	return nil, nil
+	// TODO: can maybe use just GetSpendKindByID(id int) instead of this one
+
+	userId, err := pdb.GetUserIDByUsername(username)
+	if err != nil {
+		return nil, err
+	}
+
+	var name string
+	sqlStatement := `SELECT name FROM spend_kinds WHERE id=$1 AND user_id=$2`
+	row := pdb.db.QueryRow(sqlStatement, spendingKindID, userId)
+
+	err = row.Scan(&name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNotFound
+		}
+		log.Errorf("postgres DB error 10023: " + err.Error())
+		return nil, err
+	}
+	return &SpendKind{
+		ID:   spendingKindID,
+		Name: name,
+	}, nil
 }
 
 func (pdb *PostgresDBClient) GetSpendKindByID(id int) (*SpendKind, error) {

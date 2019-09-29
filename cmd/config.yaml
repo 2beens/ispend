@@ -8,7 +8,7 @@ postgres_env: dev
 
 # postgres DB config
 postgres_production:
-  host: 194.182.178.0
+  host: db.serjspends.de
   port: 5432
   name: ispenddb
   user: ubuntu

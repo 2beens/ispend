@@ -126,10 +126,9 @@ func Serve(configData []byte, port, environment string) {
 		return
 	}
 
-	log.Debugf("using db: \t\t%s", config.DBType)
-	log.Debugf("postgres env: \t%s", config.PostgresEnv)
-	log.Debugf("using db prod: \t%s", config.DBProd.Host)
-	log.Debugf("using db dev: \t%s", config.DBDev.Host)
+	log.Debugf("using db: \t\t[%s] with env [%s]", config.DBType, config.PostgresEnv)
+	log.Debugf("config - db prod: \t%s", config.DBProd.Host)
+	log.Debugf("config - db dev: \t%s", config.DBDev.Host)
 
 	chInterrupt := make(chan signal, 1)
 	chOsInterrupt := make(chan os.Signal, 1)
@@ -166,10 +165,12 @@ func Serve(configData []byte, port, environment string) {
 
 		router = routerSetup(isProduction, dbClient, chInterrupt)
 		log.Println(" > db: using Postgres db")
-	} else {
+	} else if config.DBType == DBTypeInMemory {
 		dbClient = NewInMemoryDB()
 		router = routerSetup(isProduction, dbClient, chInterrupt)
 		log.Println(" > db: using in memory db")
+	} else {
+		log.Fatalf("unknown db type from config: %s", config.DBType)
 	}
 
 	ipAndPort := fmt.Sprintf("%s:%s", IPAddress, port)
