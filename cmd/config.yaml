@@ -3,17 +3,19 @@ dbtype: postgres
 #dbtype: mem
 
 # production | dev
-#postgres_env: production
-postgres_env: dev
+postgres_env: production
+#postgres_env: dev
 
 db_ping_timeout: 10 # in seconds
 
 # postgres DB config
 postgres_production:
-  host: db.serjspends.de
+#  host: db.serjspends.de
+  host: ec2-3-15-33-157.us-east-2.compute.amazonaws.com
   port: 5432
   name: ispenddb
-  user: ubuntu
+#  user: ubuntu
+  user: ispend
   password: ''
   sslMode: disable
 

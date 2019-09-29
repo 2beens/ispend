@@ -38,8 +38,8 @@ func (pdb *PostgresDBClient) Open() error {
 	var connStr string
 	if pdb.sslMode == "disable" {
 		connStr = fmt.Sprintf(
-			"host=%s port=%d user=%s dbname=%s sslmode=%s",
-			pdb.dbHost, pdb.dbPort, pdb.dbUser, pdb.dbName, pdb.sslMode,
+			"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+			pdb.dbHost, pdb.dbPort, pdb.dbUser, pdb.dbPassword, pdb.dbName, pdb.sslMode,
 		)
 	} else {
 		connStr = fmt.Sprintf(
