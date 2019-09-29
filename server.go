@@ -127,8 +127,8 @@ func Serve(configData []byte, port, environment string) {
 	}
 
 	log.Debugf("using db: \t\t[%s] with env [%s]", config.DBType, config.PostgresEnv)
-	log.Debugf("config - db prod: \t%s", config.DBProd.Host)
-	log.Debugf("config - db dev: \t%s", config.DBDev.Host)
+	log.Debugf("config - db prod: \t%s:%d", config.DBProd.Host, config.DBProd.Port)
+	log.Debugf("config - db dev: \t%s:%d", config.DBDev.Host, config.DBDev.Port)
 
 	chInterrupt := make(chan signal, 1)
 	chOsInterrupt := make(chan os.Signal, 1)
@@ -157,10 +157,11 @@ func Serve(configData []byte, port, environment string) {
 			config.GetPostgresDBUsername(),
 			config.GetPostgresDBPassword(),
 			config.GetPostgresDBSSLMode(),
+			config.PingTimeout,
 		)
 		err = dbClient.Open()
 		if err != nil {
-			log.Errorf("cannot open PS DB connection: %s", err.Error())
+			log.Fatalf("cannot open PS DB connection: %s", err.Error())
 		}
 
 		router = routerSetup(isProduction, dbClient, chInterrupt)

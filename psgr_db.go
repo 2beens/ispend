@@ -12,23 +12,25 @@ import (
 )
 
 type PostgresDBClient struct {
-	db         *sql.DB
-	sslMode    string
-	dbHost     string
-	dbPort     int
-	dbUser     string
-	dbName     string
-	dbPassword string
+	db          *sql.DB
+	sslMode     string
+	dbHost      string
+	dbPort      int
+	dbUser      string
+	dbName      string
+	dbPassword  string
+	pingTimeout int
 }
 
-func NewPostgresDBClient(dbHost string, dbPort int, dbName string, dbUser string, dbPassword string, sslMode string) *PostgresDBClient {
+func NewPostgresDBClient(dbHost string, dbPort int, dbName string, dbUser string, dbPassword string, sslMode string, pingTimeout int) *PostgresDBClient {
 	return &PostgresDBClient{
-		sslMode:    sslMode,
-		dbHost:     dbHost,
-		dbPort:     dbPort,
-		dbUser:     dbUser,
-		dbPassword: dbPassword,
-		dbName:     dbName,
+		sslMode:     sslMode,
+		dbHost:      dbHost,
+		dbPort:      dbPort,
+		dbUser:      dbUser,
+		dbPassword:  dbPassword,
+		dbName:      dbName,
+		pingTimeout: pingTimeout,
 	}
 }
 
@@ -51,18 +53,28 @@ func (pdb *PostgresDBClient) Open() error {
 		return err
 	}
 
-	err = db.Ping()
-	if err != nil {
-		log.Error("failed to ping postgres db")
-		return err
-	} else {
-		log.Trace("successful postgres DB ping!")
+	pingDoneCh := make(chan error, 1)
+	go func() {
+		err = db.Ping()
+		if err != nil {
+			log.Error("failed to ping postgres db")
+		} else {
+			log.Trace("successful postgres DB ping!")
+		}
+		pingDoneCh <- err
+	}()
+
+	select {
+	case pingErr := <-pingDoneCh:
+		if pingErr == nil {
+			log.Debugf("successfully connected to postgres db at: %s:%d", pdb.dbHost, pdb.dbPort)
+			pdb.db = db
+			return nil
+		}
+		return pingErr
+	case <-time.After(time.Duration(pdb.pingTimeout) * time.Second):
+		return errors.New(fmt.Sprintf("timeout [after %d seconds] fatal error - cannot ping database", pdb.pingTimeout))
 	}
-
-	log.Debugf("successfully connected to postgres db at: %s:%d", pdb.dbHost, pdb.dbPort)
-
-	pdb.db = db
-	return nil
 }
 
 func (pdb *PostgresDBClient) Close() error {

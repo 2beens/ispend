@@ -6,6 +6,8 @@ dbtype: postgres
 #postgres_env: production
 postgres_env: dev
 
+db_ping_timeout: 10 # in seconds
+
 # postgres DB config
 postgres_production:
   host: db.serjspends.de

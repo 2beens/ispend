@@ -10,6 +10,7 @@ const PostgresProduction = "production"
 const PostgresDev = "dev"
 
 type YamlConfig struct {
+	PingTimeout int    `yaml:"db_ping_timeout"`
 	DBType      string `yaml:"dbtype"`
 	PostgresEnv string `yaml:"postgres_env"`
 	DBProd      struct {
