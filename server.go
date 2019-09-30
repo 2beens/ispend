@@ -19,7 +19,8 @@ var dbClient SpenderDB
 
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Tracef(" ====> request path: [%s]", r.URL.Path)
+		// TODO: mute path logs for now
+		//log.Tracef(" ====> request path: [%s]", r.URL.Path)
 		next.ServeHTTP(w, r)
 	})
 }
@@ -88,8 +89,10 @@ func routerSetup(isProduction bool, db SpenderDB, chInterrupt chan signal) (r *m
 		logsPath = "/root/ispend"
 	}
 
-	usersHandler := NewUsersHandler(db, loginSessionManager)
-	spendingHandler := NewSpendingHandler(db, loginSessionManager)
+	usersService := NewUsersService(db)
+
+	usersHandler := NewUsersHandler(usersService, loginSessionManager)
+	spendingHandler := NewSpendingHandler(usersService, loginSessionManager)
 	spendKindHandler := NewSpendKindHandler(db, loginSessionManager)
 	debugHandler := NewDebugHandler(viewsMaker, logsPath, "ispend.log")
 
@@ -126,9 +129,9 @@ func Serve(configData []byte, port, environment string) {
 		return
 	}
 
-	log.Debugf("using db: \t\t[%s] with env [%s]", config.DBType, config.PostgresEnv)
-	log.Debugf("config - db prod: \t%s:%d", config.DBProd.Host, config.DBProd.Port)
-	log.Debugf("config - db dev: \t%s:%d", config.DBDev.Host, config.DBDev.Port)
+	log.Debugf("using usersService: \t\t[%s] with env [%s]", config.DBType, config.PostgresEnv)
+	log.Debugf("config - usersService prod: \t%s:%d", config.DBProd.Host, config.DBProd.Port)
+	log.Debugf("config - usersService dev: \t%s:%d", config.DBDev.Host, config.DBDev.Port)
 
 	chInterrupt := make(chan signal, 1)
 	chOsInterrupt := make(chan os.Signal, 1)
@@ -165,13 +168,13 @@ func Serve(configData []byte, port, environment string) {
 		}
 
 		router = routerSetup(isProduction, dbClient, chInterrupt)
-		log.Println(" > db: using Postgres db")
+		log.Println(" > usersService: using Postgres usersService")
 	} else if config.DBType == DBTypeInMemory {
 		dbClient = NewInMemoryDB()
 		router = routerSetup(isProduction, dbClient, chInterrupt)
-		log.Println(" > db: using in memory db")
+		log.Println(" > usersService: using in memory usersService")
 	} else {
-		log.Fatalf("unknown db type from config: %s", config.DBType)
+		log.Fatalf("unknown usersService type from config: %s", config.DBType)
 	}
 
 	ipAndPort := fmt.Sprintf("%s:%s", IPAddress, port)

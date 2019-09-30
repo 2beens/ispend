@@ -9,9 +9,11 @@ type SpenderDB interface {
 	GetSpendKind(username string, spendingKindID int) (*SpendKind, error)
 	GetSpendKinds(username string) ([]SpendKind, error)
 	StoreSpendKind(username string, kind *SpendKind) (int, error)
+
 	StoreUser(user *User) (int, error)
-	GetUser(username string) (*User, error)
-	GetAllUsers() (Users, error)
+	GetUser(username string, loadAllData bool) (*User, error)
+	GetAllUsers(loadAllUserData bool) (Users, error)
+
 	StoreSpending(username string, spending Spending) error
 	GetSpends(username string) ([]Spending, error)
 }

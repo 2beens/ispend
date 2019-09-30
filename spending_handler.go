@@ -11,13 +11,13 @@ import (
 )
 
 type SpendingHandler struct {
-	db                  SpenderDB
+	usersService        *UsersService
 	loginSessionManager *LoginSessionManager
 }
 
-func NewSpendingHandler(db SpenderDB, loginSessionManager *LoginSessionManager) *SpendingHandler {
+func NewSpendingHandler(usersService *UsersService, loginSessionManager *LoginSessionManager) *SpendingHandler {
 	return &SpendingHandler{
-		db:                  db,
+		usersService:        usersService,
 		loginSessionManager: loginSessionManager,
 	}
 }
@@ -50,7 +50,7 @@ func (handler *SpendingHandler) handleGetUserSpendingByID(w http.ResponseWriter,
 	vars := mux.Vars(r)
 	username := vars["username"]
 	spendID := vars["id"]
-	user, err := handler.db.GetUser(username)
+	user, err := handler.usersService.GetUser(username)
 	if err != nil {
 		sendErr := SendAPIErrorResp(w, err.Error(), http.StatusBadRequest)
 		if sendErr != nil {
@@ -75,7 +75,7 @@ func (handler *SpendingHandler) handleGetUserSpendingByID(w http.ResponseWriter,
 func (handler *SpendingHandler) handleGetUserSpends(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	username := vars["username"]
-	user, err := handler.db.GetUser(username)
+	user, err := handler.usersService.GetUser(username)
 	if err != nil {
 		sendErr := SendAPIErrorResp(w, err.Error(), http.StatusBadRequest)
 		if sendErr != nil {
@@ -124,14 +124,14 @@ func (handler *SpendingHandler) handleNewSpending(w http.ResponseWriter, r *http
 	}
 	kindIdParam := r.FormValue("kind_id")
 	kindId, _ := strconv.Atoi(kindIdParam)
-	spendKind, err := handler.db.GetSpendKind(username, kindId)
+	spendKind, err := handler.usersService.GetSpendKind(username, kindId)
 	if err != nil {
 		log.Errorf("new spending, error 9005: %s", err.Error())
 		_ = SendAPIErrorResp(w, "missing/wrong spending kind ID", http.StatusBadRequest)
 		return
 	}
 
-	user, err := handler.db.GetUser(username)
+	user, err := handler.usersService.GetUser(username)
 	if err != nil && err != ErrNotFound {
 		log.Errorf("new spending, error 9003: %s", err.Error())
 		_ = SendAPIErrorResp(w, "server error 9003", http.StatusInternalServerError)
@@ -154,7 +154,7 @@ func (handler *SpendingHandler) handleNewSpending(w http.ResponseWriter, r *http
 	}
 
 	// will also add this spending to user.spends
-	err = handler.db.StoreSpending(username, spending)
+	err = handler.usersService.StoreSpending(username, spending)
 	if err != nil {
 		log.Errorf("new spending, error 9004: %s", err.Error())
 		_ = SendAPIErrorResp(w, "server error 9004", http.StatusInternalServerError)

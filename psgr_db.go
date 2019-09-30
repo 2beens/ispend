@@ -36,17 +36,10 @@ func NewPostgresDBClient(dbHost string, dbPort int, dbName string, dbUser string
 
 func (pdb *PostgresDBClient) Open() error {
 	var connStr string
-	if pdb.sslMode == "disable" {
-		connStr = fmt.Sprintf(
-			"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-			pdb.dbHost, pdb.dbPort, pdb.dbUser, pdb.dbPassword, pdb.dbName, pdb.sslMode,
-		)
-	} else {
-		connStr = fmt.Sprintf(
-			"host=%s port=%d user=%s dbname=%s password=%s sslmode=%s",
-			pdb.dbHost, pdb.dbPort, pdb.dbUser, pdb.dbName, pdb.dbPassword, pdb.sslMode,
-		)
-	}
+	connStr = fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		pdb.dbHost, pdb.dbPort, pdb.dbUser, pdb.dbPassword, pdb.dbName, pdb.sslMode,
+	)
 
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
@@ -57,7 +50,7 @@ func (pdb *PostgresDBClient) Open() error {
 	go func() {
 		err = db.Ping()
 		if err != nil {
-			log.Error("failed to ping postgres db")
+			log.Error("failed to ping postgres usersService")
 		} else {
 			log.Trace("successful postgres DB ping!")
 		}
@@ -67,7 +60,7 @@ func (pdb *PostgresDBClient) Open() error {
 	select {
 	case pingErr := <-pingDoneCh:
 		if pingErr == nil {
-			log.Debugf("successfully connected to postgres db at: %s:%d", pdb.dbHost, pdb.dbPort)
+			log.Debugf("successfully connected to postgres usersService at: %s:%d", pdb.dbHost, pdb.dbPort)
 			pdb.db = db
 			return nil
 		}
@@ -262,7 +255,7 @@ func (pdb *PostgresDBClient) StoreUser(user *User) (int, error) {
 	return id, nil
 }
 
-func (pdb *PostgresDBClient) GetUser(username string) (*User, error) {
+func (pdb *PostgresDBClient) GetUser(username string, loadAllData bool) (*User, error) {
 	var id int
 	var email, password string
 	sqlStatement := `SELECT * FROM users WHERE username=$1`
@@ -279,15 +272,16 @@ func (pdb *PostgresDBClient) GetUser(username string) (*User, error) {
 
 	var spends []Spending
 	var spendKinds []SpendKind
+	if loadAllData {
+		spends, err = pdb.GetSpends(username)
+		if err != nil {
+			return nil, err
+		}
 
-	spends, err = pdb.GetSpends(username)
-	if err != nil {
-		return nil, err
-	}
-
-	spendKinds, err = pdb.GetSpendKinds(username)
-	if err != nil {
-		return nil, err
+		spendKinds, err = pdb.GetSpendKinds(username)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &User{
@@ -299,7 +293,7 @@ func (pdb *PostgresDBClient) GetUser(username string) (*User, error) {
 	}, nil
 }
 
-func (pdb *PostgresDBClient) GetAllUsers() (Users, error) {
+func (pdb *PostgresDBClient) GetAllUsers(loadAllUserData bool) (Users, error) {
 	rows, err := pdb.db.Query("SELECT * FROM users")
 	defer pdb.closeRows(rows)
 	if err != nil {
@@ -317,15 +311,16 @@ func (pdb *PostgresDBClient) GetAllUsers() (Users, error) {
 
 		var spends []Spending
 		var spendKinds []SpendKind
+		if loadAllUserData {
+			spends, err = pdb.GetSpends(username)
+			if err != nil {
+				return nil, err
+			}
 
-		spends, err = pdb.GetSpends(username)
-		if err != nil {
-			return nil, err
-		}
-
-		spendKinds, err = pdb.GetSpendKinds(username)
-		if err != nil {
-			return nil, err
+			spendKinds, err = pdb.GetSpendKinds(username)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		users = append(users, &User{
