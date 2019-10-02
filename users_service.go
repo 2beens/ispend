@@ -10,7 +10,7 @@ import (
 
 type UsersService struct {
 	db        SpenderDB
-	mutex     *sync.Mutex
+	mutex     *sync.RWMutex
 	cache     *ristretto.Cache
 	usernames []string
 }
@@ -28,7 +28,7 @@ func NewUsersService(db SpenderDB) *UsersService {
 
 	cacheService := &UsersService{
 		db:        db,
-		mutex:     &sync.Mutex{},
+		mutex:     &sync.RWMutex{},
 		cache:     cache,
 		usernames: []string{},
 	}
@@ -57,6 +57,8 @@ func (us *UsersService) GetAllDefaultSpendKinds() ([]SpendKind, error) {
 }
 
 func (us *UsersService) GetAllUsers() (Users, error) {
+	us.mutex.Lock()
+	defer us.mutex.Unlock()
 	var users Users
 	for _, username := range us.usernames {
 		user, err := us.GetUser(username)
@@ -87,6 +89,8 @@ func (us *UsersService) AddUser(user *User) error {
 		user.SpendKinds[i].ID = spendKindID
 	}
 
+	us.mutex.Lock()
+	defer us.mutex.Unlock()
 	us.setUserSpends(user.Username, user.Spends)
 	us.setUserSpendKinds(user.Username, user.SpendKinds)
 	us.usernames = append(us.usernames, user.Username)
@@ -141,10 +145,12 @@ func (us *UsersService) UserExists(username string) bool {
 }
 
 func (us *UsersService) StoreSpending(username string, spending Spending) error {
+	us.mutex.Lock()
 	var spends []Spending
 	spends, _ = us.getUserSpends(username)
 	us.cache.Del(username)
 	us.setUserSpends(username, append(spends, spending))
+	us.mutex.Unlock()
 	return us.db.StoreSpending(username, spending)
 }
 
