@@ -8,6 +8,11 @@ postgres_env: production
 
 db_ping_timeout: 10 # in seconds
 
+graphite:
+  enabled: true
+  host: grafana.serjspends.de
+  port: 2003
+
 # postgres DB config
 postgres_production:
 #  host: db.serjspends.de

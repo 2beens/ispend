@@ -133,6 +133,26 @@ func Serve(configData []byte, port, environment string) {
 	log.Debugf("config - usersService prod: \t%s:%d", config.DBProd.Host, config.DBProd.Port)
 	log.Debugf("config - usersService dev: \t%s:%d", config.DBDev.Host, config.DBDev.Port)
 
+	var graphiteClient *GraphiteClient
+	if config.Graphite.Enabled {
+		graphiteClient, err = NewGraphite(config.Graphite.Host, config.Graphite.Port)
+		if err != nil {
+			panicMessage := fmt.Sprintf("cannot create graphite client: %s", err.Error())
+			log.Error(panicMessage)
+			panic(panicMessage)
+		}
+	} else {
+		log.Debugln("using NOP graphite client")
+		graphiteClient = NewGraphiteNop(config.Graphite.Host, config.Graphite.Port)
+	}
+
+	err = graphiteClient.SimpleSend("stats.server.started", "1")
+	if err != nil {
+		log.Errorf("failed to send stats.server.started metric to graphite: %s", err.Error())
+	} else {
+		log.Traceln("stats.server.started metric successfully sent to graphite")
+	}
+
 	chInterrupt := make(chan signal, 1)
 	chOsInterrupt := make(chan os.Signal, 1)
 	ossignal.Notify(chOsInterrupt, os.Interrupt)
@@ -168,11 +188,11 @@ func Serve(configData []byte, port, environment string) {
 		}
 
 		router = routerSetup(isProduction, dbClient, chInterrupt)
-		log.Println(" > usersService: using Postgres usersService")
+		log.Debugln(" > usersService: using Postgres usersService")
 	} else if config.DBType == DBTypeInMemory {
 		dbClient = NewInMemoryDB()
 		router = routerSetup(isProduction, dbClient, chInterrupt)
-		log.Println(" > usersService: using in memory usersService")
+		log.Debugln(" > usersService: using in memory usersService")
 	} else {
 		log.Fatalf("unknown usersService type from config: %s", config.DBType)
 	}
