@@ -2,7 +2,13 @@
     <script src="public/js/sidebar.js"></script>
 
     <div class="sidebar">
-        <form method="post" action="#" onsubmit="return false" id="login_form">
+        <div style="display: none" id="loggedUserInfo">
+            <p>Logged in as:</p>
+            <p id="usernameInfo"></p>
+            <p><input class="submit" type="submit" name="logout"
+                                         onclick="logout()" value="Logout"/></p>
+        </div>
+        <form method="post" action="#" onsubmit="return false" id="loginForm">
             <p>
                 <input class="search" autocomplete="off" type="text" id="form_username" placeholder="username"/>
                 <input class="search" autocomplete="off" type="password" id="form_password" placeholder="password"/>
@@ -15,7 +21,7 @@
         <h3>Latest News</h3>
         <h4>Using PostgreSQL DB</h4>
         <h5>29th September, 2019</h5>
-        <p>The site now uses a new Postgres DB, hosted in Amazon EC2</a></p>
+        <p>The site now uses a new Postgres DB, hosted in Amazon EC2</p>
         <p></p>
         <h4>New look</h4>
         <h5>September, 2019</h5>

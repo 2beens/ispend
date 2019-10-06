@@ -7,6 +7,7 @@ import (
 	"os"
 	ossignal "os/signal"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -17,28 +18,47 @@ var loginSessionManager = NewLoginSessionHandler()
 
 var dbClient SpenderDB
 
-func loggingMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// TODO: mute path logs for now
-		//log.Tracef(" ====> request path: [%s]", r.URL.Path)
-		next.ServeHTTP(w, r)
-	})
-}
-
-func panicRecoverMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer func(reqPath string) {
-			if r := recover(); r != nil {
-				log.Errorf(" >>> recovering from panic [path: %s]. error details: %v", reqPath, r)
-				log.Error(" >>> stack trace: ")
-				log.Error(string(debug.Stack()))
+func getLoggingMiddleware(graphiteClient *GraphiteClient) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// TODO: mute path logs for now
+			//log.Tracef(" ====> request path: [%s]", r.URL.Path)
+			path := r.URL.Path
+			if path == "/" {
+				path = "<root>"
+			} else if strings.HasPrefix(path, "/") {
+				path = path[1:]
 			}
-		}(r.URL.Path)
-		next.ServeHTTP(w, r)
-	})
+			graphiteClient.SimpleSendInt("paths."+path, 1)
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
-func routerSetup(isProduction bool, db SpenderDB, chInterrupt chan signal) (r *mux.Router) {
+func getPanicRecoverMiddleware(graphiteClient *GraphiteClient) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer func(reqPath string) {
+				if r := recover(); r != nil {
+					log.Errorf(" >>> recovering from panic [path: %s]. error details: %v", reqPath, r)
+					log.Error(" >>> stack trace: ")
+					log.Error(string(debug.Stack()))
+
+					path := reqPath
+					if path == "/" {
+						path = "<root>"
+					} else if strings.HasPrefix(path, "/") {
+						path = path[1:]
+					}
+					graphiteClient.SimpleSendInt("panic.recovery."+path, 1)
+				}
+			}(r.URL.Path)
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func routerSetup(isProduction bool, db SpenderDB, graphiteClient *GraphiteClient, chInterrupt chan signal) (r *mux.Router) {
 	r = mux.NewRouter()
 
 	// server static files
@@ -89,7 +109,7 @@ func routerSetup(isProduction bool, db SpenderDB, chInterrupt chan signal) (r *m
 		logsPath = "/root/ispend"
 	}
 
-	usersService := NewUsersService(db)
+	usersService := NewUsersService(db, graphiteClient)
 
 	usersHandler := NewUsersHandler(usersService, loginSessionManager)
 	spendingHandler := NewSpendingHandler(usersService, loginSessionManager)
@@ -100,6 +120,7 @@ func routerSetup(isProduction bool, db SpenderDB, chInterrupt chan signal) (r *m
 	r.Handle("/users", usersHandler)
 	r.Handle("/users/me/{username}/{cookie}", usersHandler)
 	r.Handle("/users/login", usersHandler)
+	r.Handle("/users/logout", usersHandler)
 	r.Handle("/users/{username}", usersHandler)
 
 	// new spending, remove spending, update spendings ...
@@ -115,8 +136,8 @@ func routerSetup(isProduction bool, db SpenderDB, chInterrupt chan signal) (r *m
 	r.Handle("/debug", debugHandler)
 	r.Handle("/debug/logs", debugHandler)
 
-	r.Use(loggingMiddleware)
-	r.Use(panicRecoverMiddleware)
+	r.Use(getLoggingMiddleware(graphiteClient))
+	r.Use(getPanicRecoverMiddleware(graphiteClient))
 
 	return r
 }
@@ -141,16 +162,16 @@ func Serve(configData []byte, port, environment string) {
 			log.Error(panicMessage)
 			panic(panicMessage)
 		}
+		graphiteClient.Prefix = "ispend"
 	} else {
 		log.Debugln("using NOP graphite client")
 		graphiteClient = NewGraphiteNop(config.Graphite.Host, config.Graphite.Port)
 	}
 
-	err = graphiteClient.SimpleSend("stats.server.started", "1")
-	if err != nil {
-		log.Errorf("failed to send stats.server.started metric to graphite: %s", err.Error())
-	} else {
+	if graphiteClient.SimpleSend("stats.server.started", "1") {
 		log.Traceln("stats.server.started metric successfully sent to graphite")
+	} else {
+		log.Errorf("failed to send stats.server.started metric to graphite")
 	}
 
 	chInterrupt := make(chan signal, 1)
@@ -187,11 +208,11 @@ func Serve(configData []byte, port, environment string) {
 			log.Fatalf("cannot open PS DB connection: %s", err.Error())
 		}
 
-		router = routerSetup(isProduction, dbClient, chInterrupt)
+		router = routerSetup(isProduction, dbClient, graphiteClient, chInterrupt)
 		log.Debugln(" > usersService: using Postgres usersService")
 	} else if config.DBType == DBTypeInMemory {
 		dbClient = NewInMemoryDB()
-		router = routerSetup(isProduction, dbClient, chInterrupt)
+		router = routerSetup(isProduction, dbClient, graphiteClient, chInterrupt)
 		log.Debugln(" > usersService: using in memory usersService")
 	} else {
 		log.Fatalf("unknown usersService type from config: %s", config.DBType)

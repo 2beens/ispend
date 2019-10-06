@@ -28,3 +28,9 @@ https://stackoverflow.com/questions/43535693/private-ios-app#targetText=Ad%20Hoc
 
 use postgresql in docker (in ubuntu):
 https://severalnines.com/database-blog/deploying-postgresql-docker-container
+
+
+Diary:
+ - added graphite client, next could be:
+    - adding the web frontend ability to add spends, and use metrics on it
+    - add metrics for cache misses

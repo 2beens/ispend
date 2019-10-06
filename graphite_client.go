@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strconv"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -145,14 +146,20 @@ func (gc *GraphiteClient) sendMetrics(metrics []Metric) error {
 
 // The SimpleSend method can be used to just pass a metric name and value and
 // have it be sent to the GraphiteClient host with the current timestamp
-func (gc *GraphiteClient) SimpleSend(stat string, value string) error {
+func (gc *GraphiteClient) SimpleSend(stat string, value string) bool {
 	metrics := make([]Metric, 1)
 	metrics[0] = NewMetric(stat, value, time.Now().Unix())
 	err := gc.sendMetrics(metrics)
 	if err != nil {
-		return err
+		log.Errorf("graphite client failed to (simple) send metric [%s]: %s", stat, err.Error())
+		return false
 	}
-	return nil
+	return true
+}
+
+func (gc *GraphiteClient) SimpleSendInt(stat string, value int) bool {
+	valueStr := strconv.Itoa(value)
+	return gc.SimpleSend(stat, valueStr)
 }
 
 // NewGraphite is a factory method that's used to create a new GraphiteClient

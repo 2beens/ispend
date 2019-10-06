@@ -37,6 +37,8 @@ func (handler *UsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			handler.handleNewUser(w, r)
 		} else if r.URL.Path == "/users/login" {
 			handler.handleLogin(w, r)
+		} else if r.URL.Path == "/users/logout" {
+			handler.handleLogout(w, r)
 		} else {
 			handler.handleUnknownPath(w)
 		}
@@ -108,6 +110,56 @@ func (handler *UsersHandler) handleGetUser(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		log.Errorf("error while sending response to client [get user]: %s", err.Error())
 	}
+}
+
+func (handler *UsersHandler) handleLogout(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		log.Errorf("error parsing form values [%s]: %s", r.URL.Path, err.Error())
+		return
+	}
+
+	cookieId := r.FormValue("sessionId")
+	if cookieId == "" {
+		_ = SendAPIErrorResp(w, "missing sessionId", http.StatusBadRequest)
+		return
+	}
+	username := r.FormValue("username")
+	if username == "" {
+		_ = SendAPIErrorResp(w, "missing username", http.StatusBadRequest)
+		return
+	}
+
+	log.Tracef(" > logout user: [%s][%s]", username, cookieId)
+
+	session, err := handler.loginSessionManager.GetByCookieID(cookieId)
+	if err != nil {
+		if err == ErrNotFound {
+			_ = SendAPIErrorResp(w, "error, session not found", http.StatusNotFound)
+		} else {
+			log.Errorf("logout error: %s", err.Error())
+			_ = SendAPIErrorResp(w, "internal server error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	if session.Username != username {
+		log.Errorf("error 10102, s. username [%s], username: %s", session.Username, username)
+		_ = SendAPIErrorResp(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	err = handler.loginSessionManager.Remove(session.Username)
+	if err != nil {
+		if err == ErrNotFound {
+			log.Errorf("error 10103, s. username [%s], username: %s", session.Username, username)
+			_ = SendAPIErrorResp(w, "error, session not found", http.StatusNotFound)
+		} else {
+			log.Errorf("logout error: %s", err.Error())
+			_ = SendAPIErrorResp(w, "internal server error", http.StatusInternalServerError)
+		}
+	}
+
+	_ = SendAPIOKResp(w, "success")
 }
 
 func (handler *UsersHandler) handleLogin(w http.ResponseWriter, r *http.Request) {

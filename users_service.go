@@ -10,12 +10,13 @@ import (
 
 type UsersService struct {
 	db        SpenderDB
-	mutex     *sync.RWMutex
+	mutex     *sync.Mutex
 	cache     *ristretto.Cache
+	graphite  *GraphiteClient
 	usernames []string
 }
 
-func NewUsersService(db SpenderDB) *UsersService {
+func NewUsersService(db SpenderDB, graphite *GraphiteClient) *UsersService {
 	config := &ristretto.Config{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
 		MaxCost:     1 << 30, // maximum cost of cache (1GB).
@@ -28,8 +29,9 @@ func NewUsersService(db SpenderDB) *UsersService {
 
 	cacheService := &UsersService{
 		db:        db,
-		mutex:     &sync.RWMutex{},
+		mutex:     &sync.Mutex{},
 		cache:     cache,
+		graphite:  graphite,
 		usernames: []string{},
 	}
 
@@ -42,6 +44,8 @@ func NewUsersService(db SpenderDB) *UsersService {
 		cacheService.setUserSpendKinds(user.Username, user.SpendKinds)
 		cacheService.usernames = append(cacheService.usernames, user.Username)
 	}
+
+	graphite.SimpleSendInt("users.total", len(allUsers))
 
 	log.Debugf("users service [init]: gotten %d users and saved in cache", len(allUsers))
 
@@ -57,8 +61,8 @@ func (us *UsersService) GetAllDefaultSpendKinds() ([]SpendKind, error) {
 }
 
 func (us *UsersService) GetAllUsers() (Users, error) {
-	us.mutex.Lock()
-	defer us.mutex.Unlock()
+	//us.mutex.Lock()
+	//defer us.mutex.Unlock()
 	var users Users
 	for _, username := range us.usernames {
 		user, err := us.GetUser(username)
@@ -89,8 +93,8 @@ func (us *UsersService) AddUser(user *User) error {
 		user.SpendKinds[i].ID = spendKindID
 	}
 
-	us.mutex.Lock()
-	defer us.mutex.Unlock()
+	//us.mutex.Lock()
+	//defer us.mutex.Unlock()
 	us.setUserSpends(user.Username, user.Spends)
 	us.setUserSpendKinds(user.Username, user.SpendKinds)
 	us.usernames = append(us.usernames, user.Username)
@@ -99,6 +103,9 @@ func (us *UsersService) AddUser(user *User) error {
 }
 
 func (us *UsersService) GetUser(username string) (*User, error) {
+	//us.mutex.Lock()
+	//defer us.mutex.Unlock()
+
 	if !us.UserExists(username) {
 		return nil, ErrNotFound
 	}
@@ -134,8 +141,8 @@ func (us *UsersService) GetUser(username string) (*User, error) {
 }
 
 func (us *UsersService) UserExists(username string) bool {
-	us.mutex.Lock()
-	defer us.mutex.Unlock()
+	//us.mutex.Lock()
+	//defer us.mutex.Unlock()
 	for _, u := range us.usernames {
 		if u == username {
 			return true
@@ -145,18 +152,18 @@ func (us *UsersService) UserExists(username string) bool {
 }
 
 func (us *UsersService) StoreSpending(username string, spending Spending) error {
-	us.mutex.Lock()
+	//us.mutex.Lock()
+	//defer us.mutex.Unlock()
 	var spends []Spending
 	spends, _ = us.getUserSpends(username)
 	us.cache.Del(username)
 	us.setUserSpends(username, append(spends, spending))
-	us.mutex.Unlock()
 	return us.db.StoreSpending(username, spending)
 }
 
 func (us *UsersService) getUserSpends(username string) ([]Spending, bool) {
-	us.mutex.Lock()
-	defer us.mutex.Unlock()
+	//us.mutex.Lock()
+	//defer us.mutex.Unlock()
 	if spends, found := us.cache.Get(username); found {
 		spendsSlice := spends.([]Spending)
 		log.Tracef("found %d spends for user %s", len(spendsSlice), username)
@@ -166,8 +173,8 @@ func (us *UsersService) getUserSpends(username string) ([]Spending, bool) {
 }
 
 func (us *UsersService) getUserSpendKinds(username string) ([]SpendKind, bool) {
-	us.mutex.Lock()
-	defer us.mutex.Unlock()
+	//us.mutex.Lock()
+	//defer us.mutex.Unlock()
 	if spendKinds, found := us.cache.Get(username + "|sk"); found {
 		spendKindsSlice := spendKinds.([]SpendKind)
 		log.Tracef("found %d spend kinds for user %s", len(spendKindsSlice), username)
@@ -177,15 +184,15 @@ func (us *UsersService) getUserSpendKinds(username string) ([]SpendKind, bool) {
 }
 
 func (us *UsersService) setUserSpends(username string, spends []Spending) bool {
-	us.mutex.Lock()
-	defer us.mutex.Unlock()
+	//us.mutex.Lock()
+	//defer us.mutex.Unlock()
 	log.Tracef("user service cache: storing %d spends for user %s", len(spends), username)
 	return us.cache.Set(username, spends, 1)
 }
 
 func (us *UsersService) setUserSpendKinds(username string, spendKinds []SpendKind) bool {
-	us.mutex.Lock()
-	defer us.mutex.Unlock()
+	//us.mutex.Lock()
+	//defer us.mutex.Unlock()
 	log.Tracef("user service cache: storing %d spend kinds for user %s", len(spendKinds), username)
 	return us.cache.Set(username+"|sk", spendKinds, 1)
 }
