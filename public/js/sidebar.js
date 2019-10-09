@@ -82,14 +82,20 @@ function refreshLoggedUserInfo() {
         $('#loginForm').css("display", "block");
         $('#loggedUserInfo').css("display", "none");
         $('#usernameInfo').text("-> " + username);
+
+        $('#navbar-register-item').css("display", "block");
+        $('#navbar-spends-item').css("display", "none");
     } else {
         $('#loginForm').css("display", "none");
         $('#loggedUserInfo').css("display", "block");
         $('#usernameInfo').text("-> " + username);
+
+        $('#navbar-register-item').css("display", "none");
+        $('#navbar-spends-item').css("display", "block");
     }
 }
 
-window.onload = function () {
-    console.log('iSpend sidebar script loaded ...');
-    refreshLoggedUserInfo();
-};
+// window.onload = function () {
+//     console.log('iSpend sidebar script loaded ...');
+//     refreshLoggedUserInfo();
+// };

@@ -79,11 +79,8 @@ func routerSetup(isProduction bool, db SpenderDB, graphiteClient *GraphiteClient
 	r.HandleFunc("/contact", func(w http.ResponseWriter, r *http.Request) {
 		viewsMaker.RenderView(w, "contact", nil)
 	})
-	r.HandleFunc("/examples", func(w http.ResponseWriter, r *http.Request) {
-		viewsMaker.RenderView(w, "examples", nil)
-	})
-	r.HandleFunc("/page", func(w http.ResponseWriter, r *http.Request) {
-		viewsMaker.RenderView(w, "page", nil)
+	r.HandleFunc("/spends", func(w http.ResponseWriter, r *http.Request) {
+		viewsMaker.RenderView(w, "spends", nil)
 	})
 	r.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
 		viewsMaker.RenderView(w, "register", nil)
