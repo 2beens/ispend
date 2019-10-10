@@ -146,5 +146,7 @@ function addSpendKindToSpendsTable(s, kindName) {
         spends.forEach(function(s, i) {
             addSpendKindToSpendsTable(s, s.kind.name);
         });
+        spendsTable.innerHTML = `<tr><th>Amount [currency]</th><th>Kind</th></tr>` + spendsTable.innerHTML;
     });
+
 })();

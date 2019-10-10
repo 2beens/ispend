@@ -58,7 +58,8 @@ function logout() {
                 localStorage.setItem("sessionId", "");
                 localStorage.setItem("username", "");
                 toastr.success(data.message, `Logout [${username}] success!`);
-                refreshLoggedUserInfo();
+                // refreshLoggedUserInfo();
+                document.location.href = "/";
             } else {
                 toastr.error(data.message, 'Logout error');
                 if (data && data.message && data.message.includes("session not found")) {
@@ -94,8 +95,3 @@ function refreshLoggedUserInfo() {
         $('#navbar-spends-item').css("display", "block");
     }
 }
-
-// window.onload = function () {
-//     console.log('iSpend sidebar script loaded ...');
-//     refreshLoggedUserInfo();
-// };
