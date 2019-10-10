@@ -13,7 +13,14 @@ type YamlConfig struct {
 	PingTimeout int    `yaml:"db_ping_timeout"`
 	DBType      string `yaml:"dbtype"`
 	PostgresEnv string `yaml:"postgres_env"`
-	DBProd      struct {
+
+	Graphite struct {
+		Enabled bool
+		Host    string
+		Port    int
+	}
+
+	DBProd struct {
 		Host     string
 		Port     int
 		Name     string

@@ -13,10 +13,10 @@ type SpendKindHandler struct {
 	loginSessionHandler *LoginSessionManager
 }
 
-func NewSpendKindHandler(db SpenderDB, loginSessionManager *LoginSessionManager) *SpendingHandler {
-	return &SpendingHandler{
+func NewSpendKindHandler(db SpenderDB, loginSessionManager *LoginSessionManager) *SpendKindHandler {
+	return &SpendKindHandler{
 		db:                  db,
-		loginSessionManager: loginSessionManager,
+		loginSessionHandler: loginSessionManager,
 	}
 }
 

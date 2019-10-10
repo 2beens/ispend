@@ -36,7 +36,7 @@ func (db *InMemoryDB) GetAllDefaultSpendKinds() ([]SpendKind, error) {
 }
 
 func (db *InMemoryDB) GetSpendKind(username string, spendingKindID int) (*SpendKind, error) {
-	user, err := db.GetUser(username)
+	user, err := db.GetUser(username, true)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (db *InMemoryDB) GetSpendKind(username string, spendingKindID int) (*SpendK
 }
 
 func (db *InMemoryDB) GetSpendKinds(username string) ([]SpendKind, error) {
-	user, err := db.GetUser(username)
+	user, err := db.GetUser(username, true)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (db *InMemoryDB) StoreUser(user *User) (int, error) {
 	return 0, nil
 }
 
-func (db *InMemoryDB) GetUser(username string) (*User, error) {
+func (db *InMemoryDB) GetUser(username string, loadAllData bool) (*User, error) {
 	for i, _ := range db.Users {
 		if db.Users[i].Username == username {
 			return db.Users[i], nil
@@ -76,12 +76,12 @@ func (db *InMemoryDB) GetUser(username string) (*User, error) {
 	return nil, ErrNotFound
 }
 
-func (db *InMemoryDB) GetAllUsers() (Users, error) {
+func (db *InMemoryDB) GetAllUsers(loadAllUserData bool) (Users, error) {
 	return db.Users, nil
 }
 
 func (db *InMemoryDB) StoreSpending(username string, spending Spending) error {
-	user, err := db.GetUser(username)
+	user, err := db.GetUser(username, true)
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func (db *InMemoryDB) StoreSpending(username string, spending Spending) error {
 }
 
 func (db *InMemoryDB) GetSpends(username string) ([]Spending, error) {
-	user, err := db.GetUser(username)
+	user, err := db.GetUser(username, true)
 	if err != nil {
 		return nil, err
 	}

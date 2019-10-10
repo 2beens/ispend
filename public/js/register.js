@@ -3,7 +3,7 @@ function registerPost() {
     var username = $('#username').val();
     var password = $('#password').val();
     if (!username || !password) {
-        console.error('username | password empty');
+        toastr.error('username | password empty', 'Register error');
         return;
     }
 
@@ -20,7 +20,7 @@ function registerPost() {
         },
         success: function (data, textStatus, jQxhr) {
             console.log('response: ' + JSON.stringify(data));
-            if (data && !data.is_error) {
+            if (data && !data.isError) {
                 toastr.success(data.message, `Register [${username}] success!`);
             } else {
                 toastr.error(data.message, 'Register error');

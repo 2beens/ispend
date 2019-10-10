@@ -9,13 +9,13 @@ import (
 )
 
 type UsersHandler struct {
-	db                  SpenderDB
+	usersService        *UsersService
 	loginSessionManager *LoginSessionManager
 }
 
-func NewUsersHandler(db SpenderDB, loginSessionManager *LoginSessionManager) *UsersHandler {
+func NewUsersHandler(usersService *UsersService, loginSessionManager *LoginSessionManager) *UsersHandler {
 	return &UsersHandler{
-		db:                  db,
+		usersService:        usersService,
 		loginSessionManager: loginSessionManager,
 	}
 }
@@ -37,6 +37,8 @@ func (handler *UsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			handler.handleNewUser(w, r)
 		} else if r.URL.Path == "/users/login" {
 			handler.handleLogin(w, r)
+		} else if r.URL.Path == "/users/logout" {
+			handler.handleLogout(w, r)
 		} else {
 			handler.handleUnknownPath(w)
 		}
@@ -69,7 +71,7 @@ func (handler *UsersHandler) handleGetMe(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	user, err := handler.db.GetUser(loginSession.Username)
+	user, err := handler.usersService.GetUser(loginSession.Username)
 	if err != nil {
 		_ = SendAPIErrorResp(w, "server error 9002", http.StatusInternalServerError)
 		log.Warnf("error [%s]: %s", r.URL.Path, err.Error())
@@ -81,9 +83,10 @@ func (handler *UsersHandler) handleGetMe(w http.ResponseWriter, r *http.Request)
 }
 
 func (handler *UsersHandler) handleGetAllUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := handler.db.GetAllUsers()
+	users, err := handler.usersService.GetAllUsers()
 	if err != nil {
 		_ = SendAPIErrorResp(w, "internal server error 10002", http.StatusInternalServerError)
+		log.Warnf("error getting all users [handleGetAllUsers]: %s", err.Error())
 		return
 	}
 	err = SendAPIOKRespWithData(w, "success", users)
@@ -95,7 +98,7 @@ func (handler *UsersHandler) handleGetAllUsers(w http.ResponseWriter, r *http.Re
 func (handler *UsersHandler) handleGetUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	username := vars["username"]
-	user, err := handler.db.GetUser(username)
+	user, err := handler.usersService.GetUser(username)
 	if err != nil {
 		sendErr := SendAPIErrorResp(w, err.Error(), http.StatusBadRequest)
 		if sendErr != nil {
@@ -107,6 +110,56 @@ func (handler *UsersHandler) handleGetUser(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		log.Errorf("error while sending response to client [get user]: %s", err.Error())
 	}
+}
+
+func (handler *UsersHandler) handleLogout(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		log.Errorf("error parsing form values [%s]: %s", r.URL.Path, err.Error())
+		return
+	}
+
+	cookieId := r.FormValue("sessionId")
+	if cookieId == "" {
+		_ = SendAPIErrorResp(w, "missing sessionId", http.StatusBadRequest)
+		return
+	}
+	username := r.FormValue("username")
+	if username == "" {
+		_ = SendAPIErrorResp(w, "missing username", http.StatusBadRequest)
+		return
+	}
+
+	log.Tracef(" > logout user: [%s][%s]", username, cookieId)
+
+	session, err := handler.loginSessionManager.GetByCookieID(cookieId)
+	if err != nil {
+		if err == ErrNotFound {
+			_ = SendAPIErrorResp(w, "error, session not found", http.StatusNotFound)
+		} else {
+			log.Errorf("logout error: %s", err.Error())
+			_ = SendAPIErrorResp(w, "internal server error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	if session.Username != username {
+		log.Errorf("error 10102, s. username [%s], username: %s", session.Username, username)
+		_ = SendAPIErrorResp(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	err = handler.loginSessionManager.Remove(session.Username)
+	if err != nil {
+		if err == ErrNotFound {
+			log.Errorf("error 10103, s. username [%s], username: %s", session.Username, username)
+			_ = SendAPIErrorResp(w, "error, session not found", http.StatusNotFound)
+		} else {
+			log.Errorf("logout error: %s", err.Error())
+			_ = SendAPIErrorResp(w, "internal server error", http.StatusInternalServerError)
+		}
+	}
+
+	_ = SendAPIOKResp(w, "success")
 }
 
 func (handler *UsersHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -126,7 +179,7 @@ func (handler *UsersHandler) handleLogin(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	user, err := handler.db.GetUser(username)
+	user, err := handler.usersService.GetUser(username)
 	if err != nil && err != ErrNotFound {
 		log.Errorf("error while logging user: %s", err.Error())
 		_ = SendAPIErrorResp(w, "server error", http.StatusInternalServerError)
@@ -164,7 +217,7 @@ func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Reques
 		_ = SendAPIErrorResp(w, "missing username", http.StatusBadRequest)
 		return
 	}
-	existingUser, err := handler.db.GetUser(username)
+	existingUser, err := handler.usersService.GetUser(username)
 	if err != nil && err != ErrNotFound {
 		log.Errorf("error while adding new user: %s", err.Error())
 		_ = SendAPIErrorResp(w, "server error", http.StatusInternalServerError)
@@ -182,14 +235,14 @@ func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Reques
 
 	log.Tracef("creating new user [%s], pass:[%s]...", username, password)
 
-	spKinds, err := handler.db.GetAllDefaultSpendKinds()
+	spKinds, err := handler.usersService.GetAllDefaultSpendKinds()
 	if err != nil {
 		log.Errorf("error getting spend kinds: %s", err.Error())
 		_ = SendAPIErrorResp(w, "server error", http.StatusInternalServerError)
 		return
 	}
 	user := NewUser(email, username, password, spKinds)
-	id, err := handler.db.StoreUser(user)
+	err = handler.usersService.AddUser(user)
 	if err != nil {
 		log.Errorf("error while adding new user: %s", err.Error())
 		_ = SendAPIErrorResp(w, "server error", http.StatusInternalServerError)
@@ -201,7 +254,7 @@ func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Reques
 		log.Errorf("error while adding new user: %s", err.Error())
 	}
 
-	log.Tracef("new user [ID: %d][%s] created", id, username)
+	log.Tracef("new user [%s] created", username)
 }
 
 func (handler *UsersHandler) handleUnknownPath(w http.ResponseWriter) {

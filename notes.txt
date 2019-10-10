@@ -15,9 +15,22 @@ deploy go web app using nginx on ubuntu
 my EXOSCALE cloud account
     -https://portal.exoscale.com/u/stubin87@gmail.com/compute/instances
 
+ALTER USER user_name WITH PASSWORD 'new_password';
+
+EC2 server postgres user details:
+username: ispend, ec2-user
+password: ispendec2
+psql -d ispenddb -U ec2-user
+
 ############### iOS
 deploy an app for testing
 https://stackoverflow.com/questions/43535693/private-ios-app#targetText=Ad%20Hoc%20Distribution%20allows%20you,the%20iOS%20Developer%20Enterprise%20Program.
 
 use postgresql in docker (in ubuntu):
 https://severalnines.com/database-blog/deploying-postgresql-docker-container
+
+
+Diary:
+ - added graphite client, next could be:
+    - adding the web frontend ability to add spends, and use metrics on it
+    - add metrics for cache misses
