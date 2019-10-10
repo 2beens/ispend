@@ -5,6 +5,22 @@
         <!-- insert the page content here -->
         <h1>Spends</h1>
         <p></p>
+        <table id="spends-table" style="width:100%; border-spacing:0;">
+        </table>
+
+        <div class="form_settings" style="border: 2px solid black; padding: 5px; border-radius: 5px;">
+            <h5>Add new spending:</h5>
+            <p><span>Amount</span><input type="text" id="amount" value=""/></p>
+            <p><span>Currency</span><input type="text" id="currency" value=""/></p>
+            <p><span>Kind</span>
+                <select id="spend-kinds" name="spend-kind">
+                </select>
+            </p>
+            <p style="padding-top: 15px">
+                <span>&nbsp;</span>
+                <input class="submit" type="submit" name="add-spending" value="Add" onclick="addSpending()"/>
+            </p>
+        </div>
 
         <h1>Examples</h1>
         <p>This page contains examples of all the styled elements available as part of this design. Use this page for

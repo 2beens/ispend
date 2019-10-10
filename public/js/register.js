@@ -3,7 +3,7 @@ function registerPost() {
     var username = $('#username').val();
     var password = $('#password').val();
     if (!username || !password) {
-        console.error('username | password empty');
+        toastr.error('username | password empty', 'Register error');
         return;
     }
 
