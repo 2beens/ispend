@@ -117,6 +117,7 @@ func routerSetup(isProduction bool, db SpenderDB, graphiteClient *GraphiteClient
 	r.Handle("/users", usersHandler)
 	r.Handle("/users/me/{username}/{cookie}", usersHandler)
 	r.Handle("/users/login", usersHandler)
+	r.Handle("/users/login/check", usersHandler)
 	r.Handle("/users/logout", usersHandler)
 	r.Handle("/users/{username}", usersHandler)
 

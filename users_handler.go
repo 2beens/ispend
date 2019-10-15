@@ -37,6 +37,8 @@ func (handler *UsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			handler.handleNewUser(w, r)
 		} else if r.URL.Path == "/users/login" {
 			handler.handleLogin(w, r)
+		} else if r.URL.Path == "/users/login/check" {
+			handler.checkSessionID(w, r)
 		} else if r.URL.Path == "/users/logout" {
 			handler.handleLogout(w, r)
 		} else {
@@ -201,6 +203,7 @@ func (handler *UsersHandler) handleLogin(w http.ResponseWriter, r *http.Request)
 func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		log.Errorf("error parsing form values [%s]: %s", r.URL.Path, err.Error())
+		_ = SendAPIErrorResp(w, "internal server error 109011", http.StatusInternalServerError)
 		return
 	}
 
@@ -262,4 +265,37 @@ func (handler *UsersHandler) handleUnknownPath(w http.ResponseWriter) {
 	if err != nil {
 		log.Errorf("error while sending error response to client [unknown path]: %s", err.Error())
 	}
+}
+
+func (handler *UsersHandler) checkSessionID(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		log.Errorf("error parsing form values [%s]: %s", r.URL.Path, err.Error())
+		return
+	}
+
+	sessionID := r.FormValue("sessionId")
+	if sessionID == "" {
+		_ = SendAPIErrorResp(w, "missing sessionID", http.StatusBadRequest)
+		return
+	}
+
+	username := r.FormValue("username")
+	if username == "" {
+		_ = SendAPIErrorResp(w, "missing username", http.StatusBadRequest)
+		return
+	}
+
+	session, err := handler.loginSessionManager.GetByCookieID(sessionID)
+	if err != nil && err != ErrNotFound {
+		log.Errorf("check session id error: %s", err)
+		_ = SendAPIErrorResp(w, "internal server error 109013", http.StatusInternalServerError)
+		return
+	}
+
+	if err == ErrNotFound || (session != nil && session.Username != username) {
+		_ = SendAPIOKResp(w, "false")
+		return
+	}
+
+	_ = SendAPIOKResp(w, "true")
 }

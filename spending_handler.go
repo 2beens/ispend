@@ -73,6 +73,8 @@ func (handler *SpendingHandler) handleGetUserSpendingByID(w http.ResponseWriter,
 }
 
 func (handler *SpendingHandler) handleGetUserSpends(w http.ResponseWriter, r *http.Request) {
+	// TODO: check if user logged
+
 	vars := mux.Vars(r)
 	username := vars["username"]
 	user, err := handler.usersService.GetUser(username)
@@ -160,6 +162,8 @@ func (handler *SpendingHandler) handleNewSpending(w http.ResponseWriter, r *http
 		_ = SendAPIErrorResp(w, "server error 9004", http.StatusInternalServerError)
 		return
 	}
+
+	log.Tracef("new spending added: %v", spending)
 
 	_ = SendAPIOKResp(w, "success")
 }
