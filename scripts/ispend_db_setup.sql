@@ -9,7 +9,7 @@ CREATE TABLE users (
     id serial PRIMARY KEY,
     email varchar(35) UNIQUE,
     username varchar(35) UNIQUE NOT NULL,
-    password varchar(35) NOT NULL
+    password varchar(130) NOT NULL
 );
 
 CREATE TABLE spend_kinds (

@@ -191,8 +191,14 @@ func (handler *UsersHandler) handleLogin(w http.ResponseWriter, r *http.Request)
 		_ = SendAPIErrorResp(w, "error, user does not exists", http.StatusBadRequest)
 		return
 	}
-	if user.Password != password {
+	if !CheckPasswordHash(password, user.Password) {
 		_ = SendAPIErrorResp(w, "wrong username/password", http.StatusBadRequest)
+		return
+	}
+
+	session, err := handler.loginSessionManager.GetByUsername(username)
+	if err == nil && session != nil {
+		_ = SendAPIOKRespWithData(w, "success", session.CookieID)
 		return
 	}
 
@@ -213,7 +219,13 @@ func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// TODO: hash password
+	// hash password
+	passwordHash, err := HashPassword(password)
+	if err != nil {
+		log.Errorf("error [getting password hash] while adding new user: %s", err)
+		_ = SendAPIErrorResp(w, "server error 111111", http.StatusInternalServerError)
+		return
+	}
 
 	username := r.FormValue("username")
 	if username == "" {
@@ -236,7 +248,7 @@ func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Reques
 		log.Tracef("new user - missing email")
 	}
 
-	log.Tracef("creating new user [%s], pass:[%s]...", username, password)
+	log.Tracef("creating new user [%s], pass [%s] ...", username, passwordHash)
 
 	spKinds, err := handler.usersService.GetAllDefaultSpendKinds()
 	if err != nil {
@@ -244,7 +256,7 @@ func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Reques
 		_ = SendAPIErrorResp(w, "server error", http.StatusInternalServerError)
 		return
 	}
-	user := NewUser(email, username, password, spKinds)
+	user := NewUser(email, username, passwordHash, spKinds)
 	err = handler.usersService.AddUser(user)
 	if err != nil {
 		log.Errorf("error while adding new user: %s", err.Error())
