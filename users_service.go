@@ -93,6 +93,7 @@ func (us *UsersService) AddUser(user *User) error {
 		user.SpendKinds[i].ID = spendKindID
 	}
 
+	// TODO:
 	//us.mutex.Lock()
 	//defer us.mutex.Unlock()
 	us.setUserSpends(user.Username, user.Spends)
@@ -103,6 +104,7 @@ func (us *UsersService) AddUser(user *User) error {
 }
 
 func (us *UsersService) GetUser(username string) (*User, error) {
+	// TODO:
 	//us.mutex.Lock()
 	//defer us.mutex.Unlock()
 
@@ -141,6 +143,7 @@ func (us *UsersService) GetUser(username string) (*User, error) {
 }
 
 func (us *UsersService) UserExists(username string) bool {
+	// TODO:
 	//us.mutex.Lock()
 	//defer us.mutex.Unlock()
 	for _, u := range us.usernames {
@@ -151,7 +154,7 @@ func (us *UsersService) UserExists(username string) bool {
 	return false
 }
 
-func (us *UsersService) StoreSpending(username string, spending Spending) error {
+func (us *UsersService) StoreSpending(username string, spending Spending) (string, error) {
 	//us.mutex.Lock()
 	//defer us.mutex.Unlock()
 	var spends []Spending

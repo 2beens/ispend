@@ -1,3 +1,9 @@
+function htmlToElement(html) {
+    const template = document.createElement('template');
+    template.innerHTML = html.trim();
+    return template.content.firstChild;
+}
+
 function getLoggedUser() {
     const username = localStorage.getItem("username");
     const sessionId = localStorage.getItem("sessionId");

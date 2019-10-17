@@ -65,7 +65,7 @@ function postNewSpending(user, spending, callback) {
         success: function (data, textStatus, jQxhr) {
             console.log('response: ' + JSON.stringify(data));
             if (data && !data.isError) {
-                callback(true);
+                callback(true, data.data);
             } else {
                 console.error('add new spending error: ' + data.message);
                 callback(false);
@@ -96,10 +96,11 @@ function addSpending() {
     }
 
     const spending = {amount: amount, currency: currency, skId: skId};
-    postNewSpending(user, spending, function(success) {
+    postNewSpending(user, spending, function(success, spendId) {
         if (success) {
             toastr.success('Spending added!', 'Add new spending');
             const skName = sk.options[sk.selectedIndex].text;
+            spending.id = spendId;
             addSpendKindToSpendsTable(spending, skName);
         } else {
             toastr.error('Spending was not added!', 'Add new spending');
@@ -107,15 +108,25 @@ function addSpending() {
     });
 }
 
+function deleteSpend(spendID) {
+    console.log('trying to delete: ' + spendID);
+}
+
 function addSpendKindToSpendsTable(s, kindName) {
     const spendsTable = document.getElementById('spends-table');
+    // TODO:
+    // spendsTable.innerHTML = `<tr><th>Amount [currency]</th><th>Kind</th><th></th></tr>` + spendsTable.innerHTML;
     const newRow = document.createElement('tr');
     const tdAmount = document.createElement('td');
     tdAmount.appendChild(document.createTextNode(s.amount + ' ' + s.currency));
     const tdKind = document.createElement('td');
     tdKind.appendChild(document.createTextNode(kindName));
+    const tdDelete = document.createElement('td');
+    document.createElement("input");
+    tdDelete.appendChild(htmlToElement(`<input type="button" onclick="deleteSpend('${s.id}')" value="Delete">`));
     newRow.appendChild(tdAmount);
     newRow.appendChild(tdKind);
+    newRow.appendChild(tdDelete);
     spendsTable.appendChild(newRow);
 }
 
@@ -146,7 +157,7 @@ function addSpendKindToSpendsTable(s, kindName) {
         spends.forEach(function(s, i) {
             addSpendKindToSpendsTable(s, s.kind.name);
         });
-        spendsTable.innerHTML = `<tr><th>Amount [currency]</th><th>Kind</th></tr>` + spendsTable.innerHTML;
+        spendsTable.innerHTML = `<tr><th>Amount [currency]</th><th>Kind</th><th></th></tr>` + spendsTable.innerHTML;
     });
 
 })();

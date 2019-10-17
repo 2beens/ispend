@@ -144,10 +144,8 @@ func (handler *SpendingHandler) handleNewSpending(w http.ResponseWriter, r *http
 		return
 	}
 
-	_ = user
-
 	spending := Spending{
-		ID:       GenerateRandomString(10),
+		//ID:       GenerateRandomString(10),
 		Currency: currency,
 		Amount:   float32(amount),
 		Kind:     spendKind,
@@ -156,16 +154,21 @@ func (handler *SpendingHandler) handleNewSpending(w http.ResponseWriter, r *http
 	}
 
 	// will also add this spending to user.spends
-	err = handler.usersService.StoreSpending(username, spending)
+	id, err := handler.usersService.StoreSpending(username, spending)
 	if err != nil {
 		log.Errorf("new spending, error 9004: %s", err.Error())
 		_ = SendAPIErrorResp(w, "server error 9004", http.StatusInternalServerError)
 		return
 	}
 
+	// TODO: check is this needed; how user is taken currently
+	spending.ID = id
+	user.Spends = append(user.Spends, spending)
+
 	log.Tracef("new spending added: %v", spending)
 
-	_ = SendAPIOKResp(w, "success")
+	apiErr := APIResponse{Status: http.StatusOK, Message: "success", IsError: false, Data: spending.ID}
+	_ = SendAPIResp(w, apiErr)
 }
 
 func (handler *SpendingHandler) handleUnknownPath(w http.ResponseWriter) {

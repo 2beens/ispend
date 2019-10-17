@@ -80,14 +80,14 @@ func (db *InMemoryDB) GetAllUsers(loadAllUserData bool) (Users, error) {
 	return db.Users, nil
 }
 
-func (db *InMemoryDB) StoreSpending(username string, spending Spending) error {
+func (db *InMemoryDB) StoreSpending(username string, spending Spending) (string, error) {
 	user, err := db.GetUser(username, true)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	user.Spends = append(user.Spends, spending)
-	return nil
+	return GenerateRandomString(10), nil
 }
 
 func (db *InMemoryDB) GetSpends(username string) ([]Spending, error) {

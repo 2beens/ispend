@@ -40,8 +40,8 @@ INSERT INTO default_spend_kinds (name) VALUES ('Nightlife');
 INSERT INTO default_spend_kinds (name) VALUES ('Rent');
 INSERT INTO default_spend_kinds (name) VALUES ('Food');
 
-INSERT INTO users (email, username, password) VALUES ('admin@serjspends.de', 'admin', 'admin1');
-INSERT INTO users (email, username, password) VALUES ('lazar@serjspends.de', 'lazar', 'lazar1');
+INSERT INTO users (email, username, password) VALUES ('admin@serjspends.de', 'admin', '$2a$14$OhXgytZEMIxgFr9q02cyru72BJwFZ3zMWEf92/YvinjzmFhYeyfLS');
+INSERT INTO users (email, username, password) VALUES ('lazar@serjspends.de', 'lazar', '$2a$14$OhXgytZEMIxgFr9q02cyru72BJwFZ3zMWEf92/YvinjzmFhYeyfLS');
 
 INSERT INTO spend_kinds (user_id, name) VALUES (1, 'House');
 INSERT INTO spend_kinds (user_id, name) VALUES (1, 'Car');

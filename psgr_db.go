@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -335,10 +336,10 @@ func (pdb *PostgresDBClient) GetAllUsers(loadAllUserData bool) (Users, error) {
 	return users, nil
 }
 
-func (pdb *PostgresDBClient) StoreSpending(username string, spending Spending) error {
+func (pdb *PostgresDBClient) StoreSpending(username string, spending Spending) (string, error) {
 	userId, err := pdb.GetUserIDByUsername(username)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	var spendKindId int
@@ -348,7 +349,7 @@ func (pdb *PostgresDBClient) StoreSpending(username string, spending Spending) e
 	} else {
 		spendKindId, err = pdb.StoreSpendKind(username, spending.Kind)
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 
@@ -361,9 +362,9 @@ func (pdb *PostgresDBClient) StoreSpending(username string, spending Spending) e
 		sqlStatement, spending.Currency, spending.Amount, spending.Timestamp, userId, spendKindId,
 	).Scan(&id)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return strconv.Itoa(id), nil
 }
 
 func (pdb *PostgresDBClient) GetSpends(username string) ([]Spending, error) {
