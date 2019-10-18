@@ -85,6 +85,18 @@ func (handler *UsersHandler) handleGetMe(w http.ResponseWriter, r *http.Request)
 }
 
 func (handler *UsersHandler) handleGetAllUsers(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		log.Errorf("error parsing form values [%s]: %s", r.URL.Path, err.Error())
+		return
+	}
+
+	username := r.FormValue("username")
+	sessionID := r.Header.Get("X-Ispend-SessionID")
+	if handler.loginSessionManager.IsUserNotLoggedIn(sessionID, username) {
+		_ = SendAPIErrorResp(w, "must be logged in", http.StatusUnauthorized)
+		return
+	}
+
 	users, err := handler.usersService.GetAllUsers()
 	if err != nil {
 		_ = SendAPIErrorResp(w, "internal server error 10002", http.StatusInternalServerError)

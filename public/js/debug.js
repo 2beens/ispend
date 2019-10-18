@@ -3,6 +3,10 @@ function getUsers() {
         url: "/users",
         type: "GET",
         dataType: "json",                 // expected format for response
+        headers: {
+            'X-Ispend-SessionID': getSessionID()
+        },
+        data: {username: getUsername()},
         complete: function () {
             console.log('completed');
         },
