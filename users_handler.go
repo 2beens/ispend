@@ -66,7 +66,7 @@ func (handler *UsersHandler) handleGetMe(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	loginSession, err := handler.loginSessionManager.GetByCookieID(cookie)
+	loginSession, err := handler.loginSessionManager.GetBySessionID(cookie)
 	if err != nil {
 		_ = SendAPIErrorResp(w, "server error 9001", http.StatusInternalServerError)
 		log.Warnf("error [%s]: %s", r.URL.Path, err.Error())
@@ -133,7 +133,7 @@ func (handler *UsersHandler) handleLogout(w http.ResponseWriter, r *http.Request
 
 	log.Tracef(" > logout user: [%s][%s]", username, cookieId)
 
-	session, err := handler.loginSessionManager.GetByCookieID(cookieId)
+	session, err := handler.loginSessionManager.GetBySessionID(cookieId)
 	if err != nil {
 		if err == ErrNotFound {
 			_ = SendAPIErrorResp(w, "error, session not found", http.StatusNotFound)
@@ -198,7 +198,7 @@ func (handler *UsersHandler) handleLogin(w http.ResponseWriter, r *http.Request)
 
 	session, err := handler.loginSessionManager.GetByUsername(username)
 	if err == nil && session != nil {
-		_ = SendAPIOKRespWithData(w, "success", session.CookieID)
+		_ = SendAPIOKRespWithData(w, "success", session.SessionID)
 		return
 	}
 
@@ -297,7 +297,7 @@ func (handler *UsersHandler) checkSessionID(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	session, err := handler.loginSessionManager.GetByCookieID(sessionID)
+	session, err := handler.loginSessionManager.GetBySessionID(sessionID)
 	if err != nil && err != ErrNotFound {
 		log.Errorf("check session id error: %s", err)
 		_ = SendAPIErrorResp(w, "internal server error 109013", http.StatusInternalServerError)

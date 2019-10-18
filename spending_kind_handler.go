@@ -41,6 +41,8 @@ func (handler *SpendKindHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 }
 
 func (handler *SpendKindHandler) handleGetDefSpendKinds(w http.ResponseWriter, r *http.Request) {
+	//TODO: check logged
+
 	spKinds, err := handler.db.GetAllDefaultSpendKinds()
 	if err != nil {
 		sendErr := SendAPIErrorResp(w, err.Error(), http.StatusBadRequest)
@@ -56,6 +58,8 @@ func (handler *SpendKindHandler) handleGetDefSpendKinds(w http.ResponseWriter, r
 }
 
 func (handler *SpendKindHandler) handleGetSpendKinds(w http.ResponseWriter, r *http.Request) {
+	//TODO: check logged
+
 	vars := mux.Vars(r)
 	username := vars["username"]
 	spKinds, err := handler.db.GetSpendKinds(username)

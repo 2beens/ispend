@@ -49,6 +49,12 @@ func (handler *SpendingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 func (handler *SpendingHandler) handleGetUserSpendingByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	username := vars["username"]
+	sessionID := r.Header.Get("X-Ispend-SessionID")
+	if handler.loginSessionManager.IsUserNotLoggedIn(sessionID, username) {
+		_ = SendAPIErrorResp(w, "must be logged in", http.StatusUnauthorized)
+		return
+	}
+
 	spendID := vars["id"]
 	user, err := handler.usersService.GetUser(username)
 	if err != nil {
@@ -73,10 +79,14 @@ func (handler *SpendingHandler) handleGetUserSpendingByID(w http.ResponseWriter,
 }
 
 func (handler *SpendingHandler) handleGetUserSpends(w http.ResponseWriter, r *http.Request) {
-	// TODO: check if user logged
-
 	vars := mux.Vars(r)
 	username := vars["username"]
+	sessionID := r.Header.Get("X-Ispend-SessionID")
+	if handler.loginSessionManager.IsUserNotLoggedIn(sessionID, username) {
+		_ = SendAPIErrorResp(w, "must be logged in", http.StatusUnauthorized)
+		return
+	}
+
 	user, err := handler.usersService.GetUser(username)
 	if err != nil {
 		sendErr := SendAPIErrorResp(w, err.Error(), http.StatusBadRequest)
@@ -98,20 +108,18 @@ func (handler *SpendingHandler) handleNewSpending(w http.ResponseWriter, r *http
 		return
 	}
 
-	// TODO: take cookie and see if user is logged, and if not - throw unauthorized error ??
-	// 			still in development - will add later
-	//cookie := r.FormValue("cookie")
-	//username, err := handler.loginSessionManager.GetByCookieID(cookie)
-	//if err != nil {
-	//	_ = SendAPIErrorResp(w, "must be logged in", http.StatusUnauthorized)
-	//	return
-	//}
-
 	username := r.FormValue("username")
 	if username == "" {
 		_ = SendAPIErrorResp(w, "missing username", http.StatusBadRequest)
 		return
 	}
+
+	sessionID := r.Header.Get("X-Ispend-SessionID")
+	if handler.loginSessionManager.IsUserNotLoggedIn(sessionID, username) {
+		_ = SendAPIErrorResp(w, "must be logged in", http.StatusUnauthorized)
+		return
+	}
+
 	currency := r.FormValue("currency")
 	if currency == "" {
 		_ = SendAPIErrorResp(w, "missing/wrong currency", http.StatusBadRequest)

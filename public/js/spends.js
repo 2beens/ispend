@@ -31,6 +31,9 @@ function getSpends(user, callback) {
         type: 'GET',
         dataType: 'json',                 // expected format for response
         contentType: 'application/x-www-form-urlencoded; charset=utf-8',
+        headers: {
+            'X-Ispend-SessionID': getSessionID()
+        },
         complete: function () {
             console.log('get spends request complete');
         },
@@ -58,6 +61,9 @@ function postNewSpending(user, spending, callback) {
         type: "POST",
         dataType: "json",                 // expected format for response
         contentType: "application/x-www-form-urlencoded; charset=utf-8",  // send as JSON
+        headers: {
+            'X-Ispend-SessionID': getSessionID()
+        },
         data: {username: user.username, currency: spending.currency, amount: spending.amount, kind_id: spending.skId},
         complete: function () {
             console.log('new spending request complete');
@@ -153,6 +159,9 @@ function addSpendKindToSpendsTable(s, kindName) {
         const spendsTable = document.getElementById('spends-table');
         while (spendsTable.firstChild) {
             spendsTable.removeChild(spendsTable.firstChild);
+        }
+        if (!spends) {
+            return;
         }
         spends.forEach(function(s, i) {
             addSpendKindToSpendsTable(s, s.kind.name);

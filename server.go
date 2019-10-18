@@ -22,7 +22,8 @@ func getLoggingMiddleware(graphiteClient *GraphiteClient) func(next http.Handler
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// TODO: mute path logs for now
-			//log.Tracef(" ====> request path: [%s]", r.URL.Path)
+			sessionID := r.Header.Get("X-Ispend-SessionID")
+			log.Tracef(" ====> request path: [%s] [sessionID: %s]", r.URL.Path, sessionID)
 			path := r.URL.Path
 			if path == "/" {
 				path = "<root>"

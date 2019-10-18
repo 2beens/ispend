@@ -10,3 +10,11 @@ function getLoggedUser() {
     const isLogged = username !== "" && sessionId !== "";
     return {username: username, sessionId: sessionId, isLogged: isLogged};
 }
+
+function getSessionID() {
+    return localStorage.getItem("sessionId");
+}
+
+function getUsername() {
+    return localStorage.getItem("username");
+}

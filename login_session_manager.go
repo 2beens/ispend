@@ -10,38 +10,53 @@ func NewLoginSessionHandler() *LoginSessionManager {
 	}
 }
 
-func (h *LoginSessionManager) New(username string) string {
-	cookieID := GenerateRandomString(45)
+func (manager *LoginSessionManager) New(username string) string {
+	sessionID := GenerateRandomString(45)
 	loginSession := LoginSession{
-		Username: username,
-		CookieID: cookieID,
+		Username:  username,
+		SessionID: sessionID,
 	}
 
-	h.loginSessions[username] = loginSession
+	manager.loginSessions[username] = loginSession
 
-	return cookieID
+	return sessionID
 }
 
-func (h *LoginSessionManager) Remove(username string) error {
-	if _, ok := h.loginSessions[username]; !ok {
+func (manager *LoginSessionManager) Remove(username string) error {
+	if _, ok := manager.loginSessions[username]; !ok {
 		return ErrNotFound
 	}
-	delete(h.loginSessions, username)
+	delete(manager.loginSessions, username)
 	return nil
 }
 
-func (h *LoginSessionManager) GetByUsername(username string) (*LoginSession, error) {
-	if ls, ok := h.loginSessions[username]; ok {
+func (manager *LoginSessionManager) GetByUsername(username string) (*LoginSession, error) {
+	if ls, ok := manager.loginSessions[username]; ok {
 		return &ls, nil
 	}
 	return nil, ErrNotFound
 }
 
-func (h *LoginSessionManager) GetByCookieID(cookieID string) (*LoginSession, error) {
-	for _, ls := range h.loginSessions {
-		if ls.CookieID == cookieID {
+func (manager *LoginSessionManager) GetBySessionID(sessionID string) (*LoginSession, error) {
+	for _, ls := range manager.loginSessions {
+		if ls.SessionID == sessionID {
 			return &ls, nil
 		}
 	}
 	return nil, ErrNotFound
+}
+
+func (manager *LoginSessionManager) IsUserLoggedIn(sessionID, username string) bool {
+	session, err := manager.GetBySessionID(sessionID)
+	if err != nil {
+		return false
+	}
+	if session.Username != username {
+		return false
+	}
+	return true
+}
+
+func (manager *LoginSessionManager) IsUserNotLoggedIn(sessionID, username string) bool {
+	return !manager.IsUserLoggedIn(sessionID, username)
 }
