@@ -36,8 +36,7 @@ func NewPostgresDBClient(dbHost string, dbPort int, dbName string, dbUser string
 }
 
 func (pdb *PostgresDBClient) Open() error {
-	var connStr string
-	connStr = fmt.Sprintf(
+	connStr := fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		pdb.dbHost, pdb.dbPort, pdb.dbUser, pdb.dbPassword, pdb.dbName, pdb.sslMode,
 	)
@@ -67,7 +66,7 @@ func (pdb *PostgresDBClient) Open() error {
 		}
 		return pingErr
 	case <-time.After(time.Duration(pdb.pingTimeout) * time.Second):
-		return errors.New(fmt.Sprintf("timeout [after %d seconds] fatal error - cannot ping database", pdb.pingTimeout))
+		return fmt.Errorf("timeout [after %d seconds] fatal error - cannot ping database", pdb.pingTimeout)
 	}
 }
 
@@ -344,6 +343,9 @@ func (pdb *PostgresDBClient) StoreSpending(username string, spending Spending) (
 
 	var spendKindId int
 	spendKindExists, err := pdb.SpendKindExistsForUser(userId, spending.Kind.Name)
+	if err != nil {
+		log.Errorf("StoreSpending error 12998: %s", err)
+	}
 	if spendKindExists {
 		spendKindId = spending.Kind.ID
 	} else {

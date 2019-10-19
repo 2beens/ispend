@@ -28,7 +28,7 @@ func getLoggingMiddleware(graphiteClient *GraphiteClient) func(next http.Handler
 			if path == "/" {
 				path = "<root>"
 			} else if strings.HasPrefix(path, "/") {
-				path = path[1:]
+				path = strings.TrimPrefix(path, "/")
 			}
 			graphiteClient.SimpleSendInt("paths."+path, 1)
 			next.ServeHTTP(w, r)
@@ -49,7 +49,7 @@ func getPanicRecoverMiddleware(graphiteClient *GraphiteClient) func(next http.Ha
 					if path == "/" {
 						path = "<root>"
 					} else if strings.HasPrefix(path, "/") {
-						path = path[1:]
+						path = strings.TrimPrefix(path, "/")
 					}
 					graphiteClient.SimpleSendInt("panic.recovery."+path, 1)
 				}

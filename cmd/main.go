@@ -24,7 +24,7 @@ func main() {
 				-port=<port>		> used port
 				-env		> environment [development|production] [d|p]
 				-logfile=<logFileName>  > output log file name
-				-loglvl=<logLevel>	> set log level
+				-loglvl=<logLevel>	> set log level [debug | error | fatal | info | trace | warn]
 			`)
 		log.Println()
 		return
@@ -45,16 +45,32 @@ func readYamlConfig() ([]byte, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer yamlConfFile.Close()
+	defer func() {
+		err := yamlConfFile.Close()
+		if err != nil {
+			log.Errorf("read yaml config - close config error: %s", err)
+		}
+	}()
 
 	return ioutil.ReadAll(yamlConfFile)
 }
 
 func loggingSetup(logFileName string, logLevel string) {
-	if logLevel == "" {
+	switch strings.ToLower(logLevel) {
+	case "debug":
+		log.SetLevel(log.DebugLevel)
+	case "error":
+		log.SetLevel(log.ErrorLevel)
+	case "fatal":
+		log.SetLevel(log.FatalLevel)
+	case "info":
+		log.SetLevel(log.InfoLevel)
+	case "trace":
 		log.SetLevel(log.TraceLevel)
-	} else {
-		// TODO: set log level according to input string
+	case "warn":
+		log.SetLevel(log.WarnLevel)
+	default:
+		log.SetLevel(log.TraceLevel)
 	}
 
 	if logFileName == "" {

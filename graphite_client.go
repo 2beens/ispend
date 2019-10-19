@@ -29,10 +29,7 @@ const defaultTimeout = 5
 
 // IsNop is a getter for *graphite.GraphiteClient.nop
 func (gc *GraphiteClient) IsNop() bool {
-	if gc.nop {
-		return true
-	}
-	return false
+	return gc.nop
 }
 
 // Given a GraphiteClient struct, Connect populates the GraphiteClient.conn field with an
@@ -64,6 +61,9 @@ func (gc *GraphiteClient) Connect() error {
 			return err
 		}
 		conn, err = net.DialUDP(gc.Protocol, nil, udpAddr)
+		if err != nil {
+			log.Errorf("error 11098: %s", err)
+		}
 	} else {
 		conn, err = net.DialTimeout(gc.Protocol, address, gc.Timeout)
 	}

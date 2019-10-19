@@ -68,7 +68,7 @@ func (db *InMemoryDB) StoreUser(user *User) (int, error) {
 }
 
 func (db *InMemoryDB) GetUser(username string, loadAllData bool) (*User, error) {
-	for i, _ := range db.Users {
+	for i := range db.Users {
 		if db.Users[i].Username == username {
 			return db.Users[i], nil
 		}

@@ -56,7 +56,7 @@ func (handler *DebugHandler) handleGetLogs(w http.ResponseWriter, r *http.Reques
 	defer func() {
 		err = file.Close()
 		if err != nil {
-			log.Errorf("error closing log file: %s", r.URL.Path, err.Error())
+			log.Errorf("error closing log file %s: %s", r.URL.Path, err.Error())
 		}
 	}()
 
@@ -80,7 +80,7 @@ func (handler *DebugHandler) handleGetLogs(w http.ResponseWriter, r *http.Reques
 
 	_, err = w.Write(logContent)
 	if err != nil {
-		log.Errorf("error sending log file: %s", r.URL.Path, err.Error())
+		log.Errorf("error sending log file %s: %s", r.URL.Path, err.Error())
 	}
 }
 

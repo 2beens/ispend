@@ -84,7 +84,7 @@ func (us *UsersService) AddUser(user *User) error {
 		return err
 	}
 
-	for i, _ := range user.SpendKinds {
+	for i := range user.SpendKinds {
 		spendKindID, err := us.db.StoreSpendKind(user.Username, &user.SpendKinds[i])
 		if err != nil {
 			log.Errorf("users service add user - add spend kind error: %s", err.Error())

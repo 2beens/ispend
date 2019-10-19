@@ -65,7 +65,7 @@ func (handler *SpendingHandler) handleGetUserSpendingByID(w http.ResponseWriter,
 		return
 	}
 
-	for i, _ := range user.Spends {
+	for i := range user.Spends {
 		if user.Spends[i].ID == spendID {
 			err = SendAPIOKRespWithData(w, "success", user.Spends[i])
 			if err != nil {
