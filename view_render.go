@@ -56,6 +56,8 @@ func (vm *ViewsMaker) reloadViews() error {
 }
 
 func (vm *ViewsMaker) RenderView(w http.ResponseWriter, page string, viewData interface{}) {
+	// TODO: remove later reloading of view templates from disk
+	//	it's still needed for frontend debuging
 	err := vm.reloadViews()
 	if err != nil {
 		log.Error(err.Error())

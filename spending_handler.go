@@ -3,7 +3,6 @@ package ispend
 import (
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -15,35 +14,15 @@ type SpendingHandler struct {
 	loginSessionManager *LoginSessionManager
 }
 
-func NewSpendingHandler(usersService *UsersService, loginSessionManager *LoginSessionManager) *SpendingHandler {
-	return &SpendingHandler{
+func SpendingHandlerSetup(router *mux.Router, usersService *UsersService, loginSessionManager *LoginSessionManager) {
+	handler := &SpendingHandler{
 		usersService:        usersService,
 		loginSessionManager: loginSessionManager,
 	}
-}
 
-func (handler *SpendingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		if strings.HasPrefix(r.URL.Path, "/spending/id/") {
-			handler.handleGetUserSpendingByID(w, r)
-		} else if strings.HasPrefix(r.URL.Path, "/spending/all/") {
-			handler.handleGetUserSpends(w, r)
-		} else {
-			handler.handleUnknownPath(w)
-		}
-	case "POST":
-		if r.URL.Path == "/spending" {
-			handler.handleNewSpending(w, r)
-		} else {
-			handler.handleUnknownPath(w)
-		}
-	default:
-		err := SendAPIErrorResp(w, "unknown request method", http.StatusBadRequest)
-		if err != nil {
-			log.Errorf("failed to send error response to client. unknown request method. details: %s", err.Error())
-		}
-	}
+	router.HandleFunc("", handler.handleNewSpending)
+	router.HandleFunc("/id/{id}/{username}", handler.handleGetUserSpendingByID)
+	router.HandleFunc("/all/{username}", handler.handleGetUserSpends)
 }
 
 func (handler *SpendingHandler) handleGetUserSpendingByID(w http.ResponseWriter, r *http.Request) {
@@ -177,11 +156,4 @@ func (handler *SpendingHandler) handleNewSpending(w http.ResponseWriter, r *http
 
 	apiErr := APIResponse{Status: http.StatusOK, Message: "success", IsError: false, Data: spending.ID}
 	_ = SendAPIResp(w, apiErr)
-}
-
-func (handler *SpendingHandler) handleUnknownPath(w http.ResponseWriter) {
-	err := SendAPIErrorResp(w, "unknown path", http.StatusBadRequest)
-	if err != nil {
-		log.Errorf("error while sending error response to client [unknown path]: %s", err.Error())
-	}
 }

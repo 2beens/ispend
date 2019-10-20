@@ -2,54 +2,30 @@ package ispend
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
 
 type UsersHandler struct {
+	router              *mux.Router
 	usersService        *UsersService
 	loginSessionManager *LoginSessionManager
 }
 
-func NewUsersHandler(usersService *UsersService, loginSessionManager *LoginSessionManager) *UsersHandler {
-	return &UsersHandler{
+func UsersHandlerSetup(router *mux.Router, usersService *UsersService, loginSessionManager *LoginSessionManager) {
+	handler := &UsersHandler{
+		router:              router,
 		usersService:        usersService,
 		loginSessionManager: loginSessionManager,
 	}
-}
 
-func (handler *UsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		if r.URL.Path == "/users" {
-			handler.handleGetAllUsers(w, r)
-		} else if strings.HasPrefix(r.URL.Path, "/users/me/") {
-			handler.handleGetMe(w, r)
-		} else if strings.HasPrefix(r.URL.Path, "/users/") {
-			handler.handleGetUser(w, r)
-		} else {
-			handler.handleUnknownPath(w)
-		}
-	case "POST":
-		if r.URL.Path == "/users" {
-			handler.handleNewUser(w, r)
-		} else if r.URL.Path == "/users/login" {
-			handler.handleLogin(w, r)
-		} else if r.URL.Path == "/users/login/check" {
-			handler.checkSessionID(w, r)
-		} else if r.URL.Path == "/users/logout" {
-			handler.handleLogout(w, r)
-		} else {
-			handler.handleUnknownPath(w)
-		}
-	default:
-		err := SendAPIErrorResp(w, "unknown request method", http.StatusBadRequest)
-		if err != nil {
-			log.Errorf("failed to send error response to client. unknown request method. details: %s", err.Error())
-		}
-	}
+	router.HandleFunc("", handler.handleGetAllUsers)
+	router.HandleFunc("/me/{username}/{cookie}", handler.handleGetMe)
+	router.HandleFunc("/login", handler.handleLogin)
+	router.HandleFunc("/login/check", handler.handleCheckSessionID)
+	router.HandleFunc("/logout", handler.handleLogout)
+	router.HandleFunc("/{username}", handler.handleGetUser)
 }
 
 func (handler *UsersHandler) handleGetMe(w http.ResponseWriter, r *http.Request) {
@@ -284,14 +260,7 @@ func (handler *UsersHandler) handleNewUser(w http.ResponseWriter, r *http.Reques
 	log.Tracef("new user [%s] created", username)
 }
 
-func (handler *UsersHandler) handleUnknownPath(w http.ResponseWriter) {
-	err := SendAPIErrorResp(w, "unknown path", http.StatusBadRequest)
-	if err != nil {
-		log.Errorf("error while sending error response to client [unknown path]: %s", err.Error())
-	}
-}
-
-func (handler *UsersHandler) checkSessionID(w http.ResponseWriter, r *http.Request) {
+func (handler *UsersHandler) handleCheckSessionID(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		log.Errorf("error parsing form values [%s]: %s", r.URL.Path, err.Error())
 		return

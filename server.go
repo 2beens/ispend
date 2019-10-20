@@ -22,8 +22,10 @@ func getLoggingMiddleware(graphiteClient *GraphiteClient) func(next http.Handler
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// TODO: mute path logs for now
-			//sessionID := r.Header.Get("X-Ispend-SessionID")
-			//log.Tracef(" ====> request path: [%s] [sessionID: %s]", r.URL.Path, sessionID)
+			userAgent := r.Header.Get("User-Agent")
+			sessionID := r.Header.Get("X-Ispend-SessionID")
+			log.Tracef(" ====> request path: [%s] [sessionID: %s] [UA: %s]", r.URL.Path, sessionID, userAgent)
+
 			path := r.URL.Path
 			if path == "/" {
 				path = "<root>"
@@ -31,6 +33,7 @@ func getLoggingMiddleware(graphiteClient *GraphiteClient) func(next http.Handler
 				path = strings.TrimPrefix(path, "/")
 			}
 			graphiteClient.SimpleSendInt("paths."+path, 1)
+
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -59,7 +62,7 @@ func getPanicRecoverMiddleware(graphiteClient *GraphiteClient) func(next http.Ha
 	}
 }
 
-func routerSetup(isProduction bool, db SpenderDB, graphiteClient *GraphiteClient, chInterrupt chan signal) (r *mux.Router) {
+func routerSetup(logsPath string, db SpenderDB, graphiteClient *GraphiteClient, chInterrupt chan signal) (r *mux.Router) {
 	r = mux.NewRouter()
 
 	// server static files
@@ -102,38 +105,31 @@ func routerSetup(isProduction bool, db SpenderDB, graphiteClient *GraphiteClient
 		}
 	})
 
-	logsPath := "/Users/2beens/Documents/projects/ispend"
-	if isProduction {
-		logsPath = "/root/ispend"
-	}
-
 	usersService := NewUsersService(db, graphiteClient)
 
-	usersHandler := NewUsersHandler(usersService, loginSessionManager)
-	spendingHandler := NewSpendingHandler(usersService, loginSessionManager)
-	spendKindHandler := NewSpendKindHandler(db, loginSessionManager)
-	debugHandler := NewDebugHandler(viewsMaker, logsPath, "ispend.log")
+	usersRouter := r.PathPrefix("/users").Subrouter()
+	spendingRouter := r.PathPrefix("/spending").Subrouter()
+	spendKindRouter := r.PathPrefix("/spending/kind").Subrouter()
+	debugRouter := r.PathPrefix("/debug").Subrouter()
+	UsersHandlerSetup(usersRouter, usersService, loginSessionManager)
+	SpendingHandlerSetup(spendingRouter, usersService, loginSessionManager)
+	SpendKindHandlerSetup(spendKindRouter, db, loginSessionManager)
+	DebugHandlerSetup(debugRouter, viewsMaker, logsPath, "ispend.log")
 
-	// new users, list users, etc ...
-	r.Handle("/users", usersHandler)
-	r.Handle("/users/me/{username}/{cookie}", usersHandler)
-	r.Handle("/users/login", usersHandler)
-	r.Handle("/users/login/check", usersHandler)
-	r.Handle("/users/logout", usersHandler)
-	r.Handle("/users/{username}", usersHandler)
+	// all the rest - unknown paths
+	r.HandleFunc("/{unknown}", func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		unknownPath := vars["unknown"]
 
-	// new spending, remove spending, update spendings ...
-	r.Handle("/spending", spendingHandler)
-	r.Handle("/spending/id/{id}/{username}", spendingHandler)
-	r.Handle("/spending/all/{username}", spendingHandler)
-
-	// new spend kind, spend kinds list, etc ...
-	r.Handle("/spending/kind", spendKindHandler)
-	r.Handle("/spending/kind/{username}", spendKindHandler)
-
-	// debug & misc
-	r.Handle("/debug", debugHandler)
-	r.Handle("/debug/logs", debugHandler)
+		acceptHeader := r.Header.Get("Accept")
+		log.Debugf("accept header: %s", acceptHeader)
+		if strings.Contains(acceptHeader, "application/json") {
+			_ = SendAPIErrorResp(w, "unknown path: "+unknownPath, http.StatusNotFound)
+		} else {
+			//TODO: navigate to some error page instead of silent home redirect ?
+			http.Redirect(w, r, "/", http.StatusPermanentRedirect)
+		}
+	})
 
 	r.Use(getLoggingMiddleware(graphiteClient))
 	r.Use(getPanicRecoverMiddleware(graphiteClient))
@@ -142,7 +138,7 @@ func routerSetup(isProduction bool, db SpenderDB, graphiteClient *GraphiteClient
 }
 
 // TODO: make a type/struct out of this file ?
-func Serve(configData []byte, port, environment string) {
+func Serve(configData []byte, port string) {
 	config, err := NewYamlConfig(configData)
 	if err != nil {
 		log.Fatalf("cannot read config file: %s", err.Error())
@@ -189,8 +185,6 @@ func Serve(configData []byte, port, environment string) {
 		log.Debugln(http.ListenAndServe(pprofhost+":"+pprofport, nil))
 	}()
 
-	isProduction := environment == "p" || environment == "production"
-
 	var router *mux.Router
 	if config.DBType == DBTypePostgres {
 		dbClient = NewPostgresDBClient(
@@ -207,11 +201,11 @@ func Serve(configData []byte, port, environment string) {
 			log.Fatalf("cannot open PS DB connection: %s", err.Error())
 		}
 
-		router = routerSetup(isProduction, dbClient, graphiteClient, chInterrupt)
+		router = routerSetup(config.LogsPath, dbClient, graphiteClient, chInterrupt)
 		log.Debugln(" > usersService: using Postgres usersService")
 	} else if config.DBType == DBTypeInMemory {
 		dbClient = NewInMemoryDB()
-		router = routerSetup(isProduction, dbClient, graphiteClient, chInterrupt)
+		router = routerSetup(config.LogsPath, dbClient, graphiteClient, chInterrupt)
 		log.Debugln(" > usersService: using in memory usersService")
 	} else {
 		log.Fatalf("unknown usersService type from config: %s", config.DBType)

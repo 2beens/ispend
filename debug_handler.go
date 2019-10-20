@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -16,33 +17,23 @@ type DebugHandler struct {
 	viewsMaker  *ViewsMaker
 }
 
-func NewDebugHandler(viewsMaker *ViewsMaker, logFilePath string, logFileName string) *DebugHandler {
+func DebugHandlerSetup(router *mux.Router, viewsMaker *ViewsMaker, logFilePath string, logFileName string) {
 	if !strings.HasSuffix(logFilePath, "/") {
 		logFilePath += "/"
 	}
-	return &DebugHandler{
+
+	handler := &DebugHandler{
 		viewsMaker:  viewsMaker,
 		logFilePath: logFilePath,
 		logFileName: logFileName,
 	}
+
+	router.HandleFunc("", handler.handleGetDebugPage)
+	router.HandleFunc("/logs", handler.handleGetLogs)
 }
 
-func (handler *DebugHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		if r.URL.Path == "/debug" {
-			handler.viewsMaker.RenderView(w, "debug", nil)
-		} else if r.URL.Path == "/debug/logs" {
-			handler.handleGetLogs(w, r)
-		} else {
-			handler.handleUnknownPath(w)
-		}
-	default:
-		err := SendAPIErrorResp(w, "unknown request method", http.StatusBadRequest)
-		if err != nil {
-			log.Errorf("failed to send error response to client. unknown request method. details: %s", err.Error())
-		}
-	}
+func (handler *DebugHandler) handleGetDebugPage(w http.ResponseWriter, r *http.Request) {
+	handler.viewsMaker.RenderView(w, "debug", nil)
 }
 
 func (handler *DebugHandler) handleGetLogs(w http.ResponseWriter, r *http.Request) {
@@ -81,12 +72,5 @@ func (handler *DebugHandler) handleGetLogs(w http.ResponseWriter, r *http.Reques
 	_, err = w.Write(logContent)
 	if err != nil {
 		log.Errorf("error sending log file %s: %s", r.URL.Path, err.Error())
-	}
-}
-
-func (handler *DebugHandler) handleUnknownPath(w http.ResponseWriter) {
-	err := SendAPIErrorResp(w, "unknown path", http.StatusBadRequest)
-	if err != nil {
-		log.Errorf("error while sending error response to client [unknown path]: %s", err.Error())
 	}
 }

@@ -2,7 +2,6 @@ package ispend
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
@@ -13,31 +12,14 @@ type SpendKindHandler struct {
 	loginSessionHandler *LoginSessionManager
 }
 
-func NewSpendKindHandler(db SpenderDB, loginSessionManager *LoginSessionManager) *SpendKindHandler {
-	return &SpendKindHandler{
+func SpendKindHandlerSetup(router *mux.Router, db SpenderDB, loginSessionManager *LoginSessionManager) {
+	handler := &SpendKindHandler{
 		db:                  db,
 		loginSessionHandler: loginSessionManager,
 	}
-}
 
-func (handler *SpendKindHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		if r.URL.Path == "/spending/kind" {
-			handler.handleGetDefSpendKinds(w, r)
-		} else if strings.HasPrefix(r.URL.Path, "/spending/kind/") {
-			handler.handleGetSpendKinds(w, r)
-		} else {
-			handler.handleUnknownPath(w)
-		}
-	case "POST":
-		log.Error("not implemented")
-	default:
-		err := SendAPIErrorResp(w, "unknown request method", http.StatusBadRequest)
-		if err != nil {
-			log.Errorf("failed to send error response to client. unknown request method. details: %s", err.Error())
-		}
-	}
+	router.HandleFunc("", handler.handleGetDefSpendKinds)
+	router.HandleFunc("/{username}", handler.handleGetSpendKinds)
 }
 
 func (handler *SpendKindHandler) handleGetDefSpendKinds(w http.ResponseWriter, r *http.Request) {
@@ -73,12 +55,5 @@ func (handler *SpendKindHandler) handleGetSpendKinds(w http.ResponseWriter, r *h
 	err = SendAPIOKRespWithData(w, "success", spKinds)
 	if err != nil {
 		log.Errorf("failed to send response to client [get spend kinds (%s)]. details: %s", username, err.Error())
-	}
-}
-
-func (handler *SpendKindHandler) handleUnknownPath(w http.ResponseWriter) {
-	err := SendAPIErrorResp(w, "unknown path", http.StatusBadRequest)
-	if err != nil {
-		log.Errorf("error while sending error response to client [unknown path]: %s", err.Error())
 	}
 }
