@@ -71,3 +71,7 @@ function checkSessionOK() {
 		},
 	});
 }
+
+function showAC() {
+	window.location.replace("public/img/catarininha.png");
+}
