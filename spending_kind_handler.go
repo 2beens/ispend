@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 )
 
 type SpendKindHandler struct {
@@ -27,16 +26,10 @@ func (handler *SpendKindHandler) handleGetDefSpendKinds(w http.ResponseWriter, r
 
 	spKinds, err := handler.db.GetAllDefaultSpendKinds()
 	if err != nil {
-		sendErr := SendAPIErrorResp(w, err.Error(), http.StatusBadRequest)
-		if sendErr != nil {
-			log.Errorf("error while sending error response to client [get def spend kinds]: %s", sendErr.Error())
-		}
+		SendAPIErrorResp(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	err = SendAPIOKRespWithData(w, "success", spKinds)
-	if err != nil {
-		log.Errorf("failed to send response to client [get DEF SPEND KINDS]. details: %s", err.Error())
-	}
+	SendAPIOKRespWithData(w, "success", spKinds)
 }
 
 func (handler *SpendKindHandler) handleGetSpendKinds(w http.ResponseWriter, r *http.Request) {
@@ -46,14 +39,8 @@ func (handler *SpendKindHandler) handleGetSpendKinds(w http.ResponseWriter, r *h
 	username := vars["username"]
 	spKinds, err := handler.db.GetSpendKinds(username)
 	if err != nil {
-		sendErr := SendAPIErrorResp(w, err.Error(), http.StatusBadRequest)
-		if sendErr != nil {
-			log.Errorf("error while sending error response to client [get spend kinds (%s)]: %s", username, sendErr.Error())
-		}
+		SendAPIErrorResp(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	err = SendAPIOKRespWithData(w, "success", spKinds)
-	if err != nil {
-		log.Errorf("failed to send response to client [get spend kinds (%s)]. details: %s", username, err.Error())
-	}
+	SendAPIOKRespWithData(w, "success", spKinds)
 }

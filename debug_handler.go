@@ -40,7 +40,7 @@ func (handler *DebugHandler) handleGetLogs(w http.ResponseWriter, r *http.Reques
 	logFilePath := filepath.FromSlash(handler.logFilePath + handler.logFileName)
 	file, err := os.Open(logFilePath)
 	if err != nil {
-		_ = SendAPIErrorResp(w, "server error 10001", http.StatusInternalServerError)
+		SendAPIErrorResp(w, "server error 10001", http.StatusInternalServerError)
 		log.Errorf("error [%s]: %s", r.URL.Path, err.Error())
 		return
 	}

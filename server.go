@@ -91,18 +91,12 @@ func routerSetup(logsPath string, db SpenderDB, graphiteClient *GraphiteClient, 
 	})
 
 	r.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
-		err := SendAPIOKResp(w, "Oh yeah...")
-		if err != nil {
-			log.Error(err.Error())
-		}
+		SendAPIOKResp(w, "Oh yeah...")
 	})
 
 	r.HandleFunc("/harakiri", func(w http.ResponseWriter, r *http.Request) {
 		chInterrupt <- emptySignal
-		err := SendAPIOKResp(w, "Goodbye cruel world...")
-		if err != nil {
-			log.Error(err.Error())
-		}
+		SendAPIOKResp(w, "Goodbye cruel world...")
 	})
 
 	usersService := NewUsersService(db, graphiteClient)
@@ -124,7 +118,7 @@ func routerSetup(logsPath string, db SpenderDB, graphiteClient *GraphiteClient, 
 		acceptHeader := r.Header.Get("Accept")
 		log.Debugf("accept header: %s", acceptHeader)
 		if strings.Contains(acceptHeader, "application/json") {
-			_ = SendAPIErrorResp(w, "unknown path: "+unknownPath, http.StatusNotFound)
+			SendAPIErrorResp(w, "unknown path: "+unknownPath, http.StatusNotFound)
 		} else {
 			//TODO: navigate to some error page instead of silent home redirect ?
 			http.Redirect(w, r, "/", http.StatusPermanentRedirect)

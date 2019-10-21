@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/rand"
 
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -32,29 +33,30 @@ func CheckPasswordHash(password, hash string) bool {
 	return err == nil
 }
 
-func SendAPIResp(w io.Writer, data interface{}) error {
+func SendAPIResp(w io.Writer, data interface{}) {
 	dataBytes, err := json.Marshal(data)
 	if err != nil {
-		return err
+		log.Warnf("#120412 failed to send API response: %s", err)
+		return
 	}
 	_, err = w.Write(dataBytes)
 	if err != nil {
-		return err
+		log.Warnf("#120413 failed to send API response: %s", err)
+		return
 	}
-	return nil
 }
 
-func SendAPIOKResp(w io.Writer, message string) error {
+func SendAPIOKResp(w io.Writer, message string) {
 	apiResp := APIResponse{Status: 200, Message: message}
-	return SendAPIResp(w, apiResp)
+	SendAPIResp(w, apiResp)
 }
 
-func SendAPIOKRespWithData(w io.Writer, message string, data interface{}) error {
+func SendAPIOKRespWithData(w io.Writer, message string, data interface{}) {
 	apiResp := APIResponse{Status: 200, Message: message, Data: data}
-	return SendAPIResp(w, apiResp)
+	SendAPIResp(w, apiResp)
 }
 
-func SendAPIErrorResp(w io.Writer, message string, status int) error {
+func SendAPIErrorResp(w io.Writer, message string, status int) {
 	apiErr := APIResponse{Status: status, Message: message, IsError: true}
-	return SendAPIResp(w, apiErr)
+	SendAPIResp(w, apiErr)
 }
