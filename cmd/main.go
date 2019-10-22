@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/2beens/ispend"
+	"github.com/2beens/ispend/internal"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -35,7 +35,7 @@ func main() {
 		log.Fatalf("cannot open/read yaml conf file: %s", err.Error())
 	}
 
-	ispend.Serve(yamlConfData, *port)
+	internal.Serve(yamlConfData, *port)
 }
 
 func readYamlConfig() ([]byte, error) {

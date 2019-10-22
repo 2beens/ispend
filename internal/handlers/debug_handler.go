@@ -1,4 +1,4 @@
-package ispend
+package handlers
 
 import (
 	"io"
@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/2beens/ispend/internal/platform"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
@@ -14,10 +15,10 @@ import (
 type DebugHandler struct {
 	logFileName string
 	logFilePath string
-	viewsMaker  *ViewsMaker
+	viewsMaker  *platform.ViewsMaker
 }
 
-func DebugHandlerSetup(router *mux.Router, viewsMaker *ViewsMaker, logFilePath string, logFileName string) {
+func DebugHandlerSetup(router *mux.Router, viewsMaker *platform.ViewsMaker, logFilePath string, logFileName string) {
 	if !strings.HasSuffix(logFilePath, "/") {
 		logFilePath += "/"
 	}
@@ -40,7 +41,7 @@ func (handler *DebugHandler) handleGetLogs(w http.ResponseWriter, r *http.Reques
 	logFilePath := filepath.FromSlash(handler.logFilePath + handler.logFileName)
 	file, err := os.Open(logFilePath)
 	if err != nil {
-		SendAPIErrorResp(w, "server error 10001", http.StatusInternalServerError)
+		platform.SendAPIErrorResp(w, "server error 10001", http.StatusInternalServerError)
 		log.Errorf("error [%s]: %s", r.URL.Path, err.Error())
 		return
 	}

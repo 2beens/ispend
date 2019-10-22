@@ -1,4 +1,4 @@
-package ispend
+package models
 
 type SpendKind struct {
 	ID   int    `json:"id"`

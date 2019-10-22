@@ -1,4 +1,4 @@
-package ispend
+package models
 
 type Users []*User
 

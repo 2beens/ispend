@@ -1,6 +1,8 @@
-package ispend
+package models
 
-import "time"
+import (
+	"time"
+)
 
 // TODO: would rather remove DTOs, and omit JSON transmit of sensitive data like user.password
 //			with `json:"-"`

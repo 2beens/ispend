@@ -1,4 +1,4 @@
-package ispend
+package db
 
 import (
 	"database/sql"
@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/2beens/ispend/internal/models"
+	"github.com/2beens/ispend/internal/platform"
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
 )
@@ -81,7 +83,7 @@ func (pdb *PostgresDBClient) Close() error {
 	return nil
 }
 
-func (pdb *PostgresDBClient) StoreDefaultSpendKind(kind SpendKind) (int, error) {
+func (pdb *PostgresDBClient) StoreDefaultSpendKind(kind models.SpendKind) (int, error) {
 	sqlStatement := `
 		INSERT INTO default_spend_kinds (name)
 		VALUES ($1)
@@ -94,14 +96,14 @@ func (pdb *PostgresDBClient) StoreDefaultSpendKind(kind SpendKind) (int, error) 
 	return id, nil
 }
 
-func (pdb *PostgresDBClient) GetAllDefaultSpendKinds() ([]SpendKind, error) {
+func (pdb *PostgresDBClient) GetAllDefaultSpendKinds() ([]models.SpendKind, error) {
 	rows, err := pdb.db.Query("SELECT * FROM default_spend_kinds")
 	defer pdb.closeRows(rows)
 	if err != nil {
 		return nil, err
 	}
 
-	var spendKinds []SpendKind
+	var spendKinds []models.SpendKind
 	for rows.Next() {
 		var id int
 		var name string
@@ -110,7 +112,7 @@ func (pdb *PostgresDBClient) GetAllDefaultSpendKinds() ([]SpendKind, error) {
 			return nil, err
 		}
 
-		spendKinds = append(spendKinds, SpendKind{
+		spendKinds = append(spendKinds, models.SpendKind{
 			ID:   id,
 			Name: name,
 		})
@@ -119,7 +121,7 @@ func (pdb *PostgresDBClient) GetAllDefaultSpendKinds() ([]SpendKind, error) {
 	return spendKinds, nil
 }
 
-func (pdb *PostgresDBClient) GetSpendKind(username string, spendingKindID int) (*SpendKind, error) {
+func (pdb *PostgresDBClient) GetSpendKind(username string, spendingKindID int) (*models.SpendKind, error) {
 	// TODO: can maybe use just GetSpendKindByID(id int) instead of this one
 
 	userId, err := pdb.GetUserIDByUsername(username)
@@ -134,18 +136,18 @@ func (pdb *PostgresDBClient) GetSpendKind(username string, spendingKindID int) (
 	err = row.Scan(&name)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrNotFound
+			return nil, platform.ErrNotFound
 		}
 		log.Errorf("postgres DB error 10023: " + err.Error())
 		return nil, err
 	}
-	return &SpendKind{
+	return &models.SpendKind{
 		ID:   spendingKindID,
 		Name: name,
 	}, nil
 }
 
-func (pdb *PostgresDBClient) GetSpendKindByID(id int) (*SpendKind, error) {
+func (pdb *PostgresDBClient) GetSpendKindByID(id int) (*models.SpendKind, error) {
 	var name string
 	sqlStatement := `SELECT name FROM spend_kinds WHERE id=$1`
 	row := pdb.db.QueryRow(sqlStatement, id)
@@ -153,12 +155,12 @@ func (pdb *PostgresDBClient) GetSpendKindByID(id int) (*SpendKind, error) {
 	err := row.Scan(&name)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrNotFound
+			return nil, platform.ErrNotFound
 		}
 		log.Errorf("postgres DB error 10003: " + err.Error())
 		return nil, err
 	}
-	return &SpendKind{
+	return &models.SpendKind{
 		ID:   id,
 		Name: name,
 	}, nil
@@ -171,7 +173,7 @@ func (pdb *PostgresDBClient) GetUserIDByUsername(username string) (int, error) {
 	err := row.Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return -1, ErrNotFound
+			return -1, platform.ErrNotFound
 		}
 		log.Errorf("postgres DB error 10021: " + err.Error())
 		return -1, err
@@ -179,7 +181,7 @@ func (pdb *PostgresDBClient) GetUserIDByUsername(username string) (int, error) {
 	return id, nil
 }
 
-func (pdb *PostgresDBClient) GetSpendKinds(username string) ([]SpendKind, error) {
+func (pdb *PostgresDBClient) GetSpendKinds(username string) ([]models.SpendKind, error) {
 	userId, err := pdb.GetUserIDByUsername(username)
 	if err != nil {
 		return nil, err
@@ -192,7 +194,7 @@ func (pdb *PostgresDBClient) GetSpendKinds(username string) ([]SpendKind, error)
 		return nil, err
 	}
 
-	var spendKinds []SpendKind
+	var spendKinds []models.SpendKind
 	for rows.Next() {
 		var id int
 		var name string
@@ -200,7 +202,7 @@ func (pdb *PostgresDBClient) GetSpendKinds(username string) ([]SpendKind, error)
 		if err != nil {
 			return nil, err
 		}
-		spendKinds = append(spendKinds, SpendKind{
+		spendKinds = append(spendKinds, models.SpendKind{
 			ID:   id,
 			Name: name,
 		})
@@ -216,7 +218,7 @@ func (pdb *PostgresDBClient) SpendKindExistsForUser(userId int, kindName string)
 	err := row.Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return false, ErrNotFound
+			return false, platform.ErrNotFound
 		}
 		log.Errorf("postgres DB error 10022: " + err.Error())
 		return false, err
@@ -224,7 +226,7 @@ func (pdb *PostgresDBClient) SpendKindExistsForUser(userId int, kindName string)
 	return true, nil
 }
 
-func (pdb *PostgresDBClient) StoreSpendKind(username string, kind *SpendKind) (int, error) {
+func (pdb *PostgresDBClient) StoreSpendKind(username string, kind *models.SpendKind) (int, error) {
 	userId, err := pdb.GetUserIDByUsername(username)
 	if err != nil {
 		return -1, err
@@ -242,7 +244,7 @@ func (pdb *PostgresDBClient) StoreSpendKind(username string, kind *SpendKind) (i
 	return id, nil
 }
 
-func (pdb *PostgresDBClient) StoreUser(user *User) (int, error) {
+func (pdb *PostgresDBClient) StoreUser(user *models.User) (int, error) {
 	sqlStatement := `
 		INSERT INTO users (email, username, password)
 		VALUES ($1, $2, $3)
@@ -255,7 +257,7 @@ func (pdb *PostgresDBClient) StoreUser(user *User) (int, error) {
 	return id, nil
 }
 
-func (pdb *PostgresDBClient) GetUser(username string, loadAllData bool) (*User, error) {
+func (pdb *PostgresDBClient) GetUser(username string, loadAllData bool) (*models.User, error) {
 	var id int
 	var email, password string
 	sqlStatement := `SELECT * FROM users WHERE username=$1`
@@ -264,14 +266,14 @@ func (pdb *PostgresDBClient) GetUser(username string, loadAllData bool) (*User, 
 	err := row.Scan(&id, &email, &username, &password)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrNotFound
+			return nil, platform.ErrNotFound
 		}
 		log.Errorf("postgres DB error 10011: " + err.Error())
 		return nil, err
 	}
 
-	var spends []Spending
-	var spendKinds []SpendKind
+	var spends []models.Spending
+	var spendKinds []models.SpendKind
 	if loadAllData {
 		spends, err = pdb.GetSpends(username)
 		if err != nil {
@@ -284,7 +286,7 @@ func (pdb *PostgresDBClient) GetUser(username string, loadAllData bool) (*User, 
 		}
 	}
 
-	return &User{
+	return &models.User{
 		Email:      email,
 		Username:   username,
 		Password:   password,
@@ -293,14 +295,14 @@ func (pdb *PostgresDBClient) GetUser(username string, loadAllData bool) (*User, 
 	}, nil
 }
 
-func (pdb *PostgresDBClient) GetAllUsers(loadAllUserData bool) (Users, error) {
+func (pdb *PostgresDBClient) GetAllUsers(loadAllUserData bool) (models.Users, error) {
 	rows, err := pdb.db.Query("SELECT * FROM users")
 	defer pdb.closeRows(rows)
 	if err != nil {
 		return nil, err
 	}
 
-	var users Users
+	var users models.Users
 	for rows.Next() {
 		var id int
 		var email, username, password string
@@ -309,8 +311,8 @@ func (pdb *PostgresDBClient) GetAllUsers(loadAllUserData bool) (Users, error) {
 			return nil, err
 		}
 
-		var spends []Spending
-		var spendKinds []SpendKind
+		var spends []models.Spending
+		var spendKinds []models.SpendKind
 		if loadAllUserData {
 			spends, err = pdb.GetSpends(username)
 			if err != nil {
@@ -323,7 +325,7 @@ func (pdb *PostgresDBClient) GetAllUsers(loadAllUserData bool) (Users, error) {
 			}
 		}
 
-		users = append(users, &User{
+		users = append(users, &models.User{
 			Email:      email,
 			Username:   username,
 			Password:   password,
@@ -335,7 +337,7 @@ func (pdb *PostgresDBClient) GetAllUsers(loadAllUserData bool) (Users, error) {
 	return users, nil
 }
 
-func (pdb *PostgresDBClient) StoreSpending(username string, spending Spending) (string, error) {
+func (pdb *PostgresDBClient) StoreSpending(username string, spending models.Spending) (string, error) {
 	userId, err := pdb.GetUserIDByUsername(username)
 	if err != nil {
 		return "", err
@@ -369,7 +371,7 @@ func (pdb *PostgresDBClient) StoreSpending(username string, spending Spending) (
 	return strconv.Itoa(id), nil
 }
 
-func (pdb *PostgresDBClient) GetSpends(username string) ([]Spending, error) {
+func (pdb *PostgresDBClient) GetSpends(username string) ([]models.Spending, error) {
 	userId, err := pdb.GetUserIDByUsername(username)
 	if err != nil {
 		return nil, err
@@ -381,7 +383,7 @@ func (pdb *PostgresDBClient) GetSpends(username string) ([]Spending, error) {
 		return nil, err
 	}
 
-	var spends []Spending
+	var spends []models.Spending
 	for rows.Next() {
 		var id, currency string
 		var userId, kindId int
@@ -396,7 +398,7 @@ func (pdb *PostgresDBClient) GetSpends(username string) ([]Spending, error) {
 		if err != nil {
 			return nil, err
 		}
-		spends = append(spends, Spending{
+		spends = append(spends, models.Spending{
 			ID:        id,
 			Currency:  currency,
 			Amount:    amount,

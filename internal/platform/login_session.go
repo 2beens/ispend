@@ -1,4 +1,4 @@
-package ispend
+package platform
 
 type LoginSession struct {
 	Username  string

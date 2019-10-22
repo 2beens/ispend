@@ -1,4 +1,4 @@
-package ispend
+package platform
 
 type LoginSessionManager struct {
 	loginSessions map[string]LoginSession

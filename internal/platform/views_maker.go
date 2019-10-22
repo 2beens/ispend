@@ -1,4 +1,4 @@
-package ispend
+package platform
 
 import (
 	"fmt"

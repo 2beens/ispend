@@ -1,4 +1,4 @@
-package ispend
+package internal
 
 import (
 	"context"
@@ -10,15 +10,21 @@ import (
 	"strings"
 	"time"
 
+	"github.com/2beens/ispend/internal/db"
+	"github.com/2beens/ispend/internal/handlers"
+	"github.com/2beens/ispend/internal/metrics"
+	"github.com/2beens/ispend/internal/models"
+	"github.com/2beens/ispend/internal/platform"
+	"github.com/2beens/ispend/internal/services"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
 
-var loginSessionManager = NewLoginSessionHandler()
+var loginSessionManager = platform.NewLoginSessionHandler()
 
-var dbClient SpenderDB
+var dbClient db.SpenderDB
 
-func getLoggingMiddleware(graphiteClient *GraphiteClient) func(next http.Handler) http.Handler {
+func getLoggingMiddleware(graphiteClient *metrics.GraphiteClient) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// TODO: mute path logs for now
@@ -39,7 +45,7 @@ func getLoggingMiddleware(graphiteClient *GraphiteClient) func(next http.Handler
 	}
 }
 
-func getPanicRecoverMiddleware(graphiteClient *GraphiteClient) func(next http.Handler) http.Handler {
+func getPanicRecoverMiddleware(graphiteClient *metrics.GraphiteClient) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func(reqPath string) {
@@ -62,14 +68,14 @@ func getPanicRecoverMiddleware(graphiteClient *GraphiteClient) func(next http.Ha
 	}
 }
 
-func routerSetup(logsPath string, db SpenderDB, graphiteClient *GraphiteClient, chInterrupt chan signal) (r *mux.Router) {
+func routerSetup(logsPath string, db db.SpenderDB, graphiteClient *metrics.GraphiteClient, chInterrupt chan models.Signal) (r *mux.Router) {
 	r = mux.NewRouter()
 
 	// server static files
 	fs := http.FileServer(http.Dir("./public/"))
 	r.PathPrefix("/public/").Handler(http.StripPrefix("/public/", fs))
 
-	viewsMaker, err := NewViewsMaker("public/views/")
+	viewsMaker, err := platform.NewViewsMaker("public/views/")
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -91,24 +97,24 @@ func routerSetup(logsPath string, db SpenderDB, graphiteClient *GraphiteClient, 
 	})
 
 	r.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
-		SendAPIOKResp(w, "Oh yeah...")
+		platform.SendAPIOKResp(w, "Oh yeah...")
 	})
 
 	r.HandleFunc("/harakiri", func(w http.ResponseWriter, r *http.Request) {
-		chInterrupt <- emptySignal
-		SendAPIOKResp(w, "Goodbye cruel world...")
+		chInterrupt <- platform.EmptySignal
+		platform.SendAPIOKResp(w, "Goodbye cruel world...")
 	})
 
-	usersService := NewUsersService(db, graphiteClient)
+	usersService := services.NewUsersService(db, graphiteClient)
 
 	usersRouter := r.PathPrefix("/users").Subrouter()
 	spendingRouter := r.PathPrefix("/spending").Subrouter()
 	spendKindRouter := r.PathPrefix("/spending/kind").Subrouter()
 	debugRouter := r.PathPrefix("/debug").Subrouter()
-	UsersHandlerSetup(usersRouter, usersService, loginSessionManager)
-	SpendingHandlerSetup(spendingRouter, usersService, loginSessionManager)
-	SpendKindHandlerSetup(spendKindRouter, db, loginSessionManager)
-	DebugHandlerSetup(debugRouter, viewsMaker, logsPath, "ispend.log")
+	handlers.UsersHandlerSetup(usersRouter, usersService, loginSessionManager)
+	handlers.SpendingHandlerSetup(spendingRouter, usersService, loginSessionManager)
+	handlers.SpendKindHandlerSetup(spendKindRouter, db, loginSessionManager)
+	handlers.DebugHandlerSetup(debugRouter, viewsMaker, logsPath, "ispend.log")
 
 	// all the rest - unknown paths
 	r.HandleFunc("/{unknown}", func(w http.ResponseWriter, r *http.Request) {
@@ -118,7 +124,7 @@ func routerSetup(logsPath string, db SpenderDB, graphiteClient *GraphiteClient, 
 		acceptHeader := r.Header.Get("Accept")
 		log.Debugf("accept header: %s", acceptHeader)
 		if strings.Contains(acceptHeader, "application/json") {
-			SendAPIErrorResp(w, "unknown path: "+unknownPath, http.StatusNotFound)
+			platform.SendAPIErrorResp(w, "unknown path: "+unknownPath, http.StatusNotFound)
 		} else {
 			//TODO: navigate to some error page instead of silent home redirect ?
 			http.Redirect(w, r, "/", http.StatusPermanentRedirect)
@@ -138,7 +144,7 @@ func Serve(configData []byte, port string) {
 		log.Warn("DB password is empty string...")
 	}
 
-	config, err := NewYamlConfig(configData)
+	config, err := platform.NewYamlConfig(configData)
 	if err != nil {
 		log.Fatalf("cannot read config file: %s", err.Error())
 		return
@@ -148,9 +154,9 @@ func Serve(configData []byte, port string) {
 	log.Debugf("config - usersService prod: \t%s:%d", config.DBProd.Host, config.DBProd.Port)
 	log.Debugf("config - usersService dev: \t%s:%d", config.DBDev.Host, config.DBDev.Port)
 
-	var graphiteClient *GraphiteClient
+	var graphiteClient *metrics.GraphiteClient
 	if config.Graphite.Enabled {
-		graphiteClient, err = NewGraphite(config.Graphite.Host, config.Graphite.Port)
+		graphiteClient, err = metrics.NewGraphite(config.Graphite.Host, config.Graphite.Port)
 		if err != nil {
 			panicMessage := fmt.Sprintf("cannot create graphite client: %s", err.Error())
 			log.Error(panicMessage)
@@ -159,7 +165,7 @@ func Serve(configData []byte, port string) {
 		graphiteClient.Prefix = "ispend"
 	} else {
 		log.Debugln("using NOP graphite client")
-		graphiteClient = NewGraphiteNop(config.Graphite.Host, config.Graphite.Port)
+		graphiteClient = metrics.NewGraphiteNop(config.Graphite.Host, config.Graphite.Port)
 	}
 
 	if graphiteClient.SimpleSend("stats.server.started", "1") {
@@ -168,12 +174,12 @@ func Serve(configData []byte, port string) {
 		log.Errorf("failed to send stats.server.started metric to graphite")
 	}
 
-	chInterrupt := make(chan signal, 1)
+	chInterrupt := make(chan models.Signal, 1)
 	chOsInterrupt := make(chan os.Signal, 1)
 	ossignal.Notify(chOsInterrupt, os.Interrupt)
 
 	if port == "" {
-		port = DefaultPort
+		port = platform.DefaultPort
 	}
 
 	// we need a webserver to get the pprof webserver
@@ -185,8 +191,8 @@ func Serve(configData []byte, port string) {
 	}()
 
 	var router *mux.Router
-	if config.DBType == DBTypePostgres {
-		dbClient = NewPostgresDBClient(
+	if config.DBType == platform.DBTypePostgres {
+		dbClient = db.NewPostgresDBClient(
 			config.GetPostgresHost(),
 			config.GetPostgresPort(),
 			config.GetPostgresDBName(),
@@ -202,15 +208,15 @@ func Serve(configData []byte, port string) {
 
 		router = routerSetup(config.LogsPath, dbClient, graphiteClient, chInterrupt)
 		log.Debugln(" > usersService: using Postgres usersService")
-	} else if config.DBType == DBTypeInMemory {
-		dbClient = NewInMemoryDB()
+	} else if config.DBType == platform.DBTypeInMemory {
+		dbClient = db.NewInMemoryDB()
 		router = routerSetup(config.LogsPath, dbClient, graphiteClient, chInterrupt)
 		log.Debugln(" > usersService: using in memory usersService")
 	} else {
 		log.Fatalf("unknown usersService type from config: %s", config.DBType)
 	}
 
-	ipAndPort := fmt.Sprintf("%s:%s", IPAddress, port)
+	ipAndPort := fmt.Sprintf("%s:%s", platform.IPAddress, port)
 
 	httpServer := &http.Server{
 		Handler:      router,
@@ -233,7 +239,7 @@ func Serve(configData []byte, port string) {
 	gracefulShutdown(httpServer, dbClient)
 }
 
-func gracefulShutdown(httpServer *http.Server, dbClient SpenderDB) {
+func gracefulShutdown(httpServer *http.Server, dbClient db.SpenderDB) {
 	log.Debug("graceful shutdown initiated ...")
 
 	err := dbClient.Close()

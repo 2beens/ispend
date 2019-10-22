@@ -1,4 +1,4 @@
-package ispend
+package models
 
 type APIResponse struct {
 	Status  int         `json:"status"`
