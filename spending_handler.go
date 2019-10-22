@@ -44,9 +44,6 @@ func (handler *SpendingHandler) handleGetUserSpendingByID(w http.ResponseWriter,
 	for i := range user.Spends {
 		if user.Spends[i].ID == spendID {
 			SendAPIOKRespWithData(w, "success", user.Spends[i])
-			if err != nil {
-				log.Errorf("error while sending user spends response to client [get user spending]: %s", err.Error())
-			}
 			return
 		}
 	}
@@ -70,9 +67,6 @@ func (handler *SpendingHandler) handleGetUserSpends(w http.ResponseWriter, r *ht
 	}
 
 	SendAPIOKRespWithData(w, "success", user.Spends)
-	if err != nil {
-		log.Errorf("error while sending user spends response to client [get all spends]: %s", err.Error())
-	}
 }
 
 func (handler *SpendingHandler) handleNewSpending(w http.ResponseWriter, r *http.Request) {
