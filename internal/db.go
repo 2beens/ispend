@@ -1,4 +1,4 @@
-package ispend
+package internal
 
 type SpenderDB interface {
 	Open() error

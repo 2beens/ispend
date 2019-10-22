@@ -1,4 +1,4 @@
-package ispend
+package internal
 
 import (
 	"gopkg.in/yaml.v2"

@@ -1,4 +1,4 @@
-package ispend
+package internal
 
 type LoginSession struct {
 	Username  string

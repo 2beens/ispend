@@ -1,4 +1,4 @@
-package ispend
+package internal
 
 import (
 	"database/sql"

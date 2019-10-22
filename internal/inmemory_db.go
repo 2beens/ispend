@@ -1,6 +1,8 @@
-package ispend
+package internal
 
-import "log"
+import (
+	"log"
+)
 
 type InMemoryDB struct {
 	DefaultSpendKinds []SpendKind

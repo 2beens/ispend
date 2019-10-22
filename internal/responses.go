@@ -1,4 +1,4 @@
-package ispend
+package internal
 
 type APIResponse struct {
 	Status  int         `json:"status"`

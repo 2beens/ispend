@@ -1,4 +1,4 @@
-package ispend
+package internal
 
 type LoginSessionManager struct {
 	loginSessions map[string]LoginSession
