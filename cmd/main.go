@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/2beens/ispend/internal"
-
 	log "github.com/sirupsen/logrus"
 )
 

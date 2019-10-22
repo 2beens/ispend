@@ -1,20 +1,24 @@
-package internal
+package handlers
 
 import (
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/2beens/ispend/internal/services"
+
+	"github.com/2beens/ispend/internal/models"
+	"github.com/2beens/ispend/internal/platform"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
 
 type SpendingHandler struct {
-	usersService        *UsersService
-	loginSessionManager *LoginSessionManager
+	usersService        *services.UsersService
+	loginSessionManager *platform.LoginSessionManager
 }
 
-func SpendingHandlerSetup(router *mux.Router, usersService *UsersService, loginSessionManager *LoginSessionManager) {
+func SpendingHandlerSetup(router *mux.Router, usersService *services.UsersService, loginSessionManager *platform.LoginSessionManager) {
 	handler := &SpendingHandler{
 		usersService:        usersService,
 		loginSessionManager: loginSessionManager,
@@ -30,25 +34,25 @@ func (handler *SpendingHandler) handleGetUserSpendingByID(w http.ResponseWriter,
 	username := vars["username"]
 	sessionID := r.Header.Get("X-Ispend-SessionID")
 	if handler.loginSessionManager.IsUserNotLoggedIn(sessionID, username) {
-		SendAPIErrorResp(w, "must be logged in", http.StatusUnauthorized)
+		platform.SendAPIErrorResp(w, "must be logged in", http.StatusUnauthorized)
 		return
 	}
 
 	spendID := vars["id"]
 	user, err := handler.usersService.GetUser(username)
 	if err != nil {
-		SendAPIErrorResp(w, err.Error(), http.StatusBadRequest)
+		platform.SendAPIErrorResp(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	for i := range user.Spends {
 		if user.Spends[i].ID == spendID {
-			SendAPIOKRespWithData(w, "success", user.Spends[i])
+			platform.SendAPIOKRespWithData(w, "success", user.Spends[i])
 			return
 		}
 	}
 
-	SendAPIErrorResp(w, "not found", http.StatusNotFound)
+	platform.SendAPIErrorResp(w, "not found", http.StatusNotFound)
 }
 
 func (handler *SpendingHandler) handleGetUserSpends(w http.ResponseWriter, r *http.Request) {
@@ -56,17 +60,17 @@ func (handler *SpendingHandler) handleGetUserSpends(w http.ResponseWriter, r *ht
 	username := vars["username"]
 	sessionID := r.Header.Get("X-Ispend-SessionID")
 	if handler.loginSessionManager.IsUserNotLoggedIn(sessionID, username) {
-		SendAPIErrorResp(w, "must be logged in", http.StatusUnauthorized)
+		platform.SendAPIErrorResp(w, "must be logged in", http.StatusUnauthorized)
 		return
 	}
 
 	user, err := handler.usersService.GetUser(username)
 	if err != nil {
-		SendAPIErrorResp(w, err.Error(), http.StatusBadRequest)
+		platform.SendAPIErrorResp(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	SendAPIOKRespWithData(w, "success", user.Spends)
+	platform.SendAPIOKRespWithData(w, "success", user.Spends)
 }
 
 func (handler *SpendingHandler) handleNewSpending(w http.ResponseWriter, r *http.Request) {
@@ -77,26 +81,26 @@ func (handler *SpendingHandler) handleNewSpending(w http.ResponseWriter, r *http
 
 	username := r.FormValue("username")
 	if username == "" {
-		SendAPIErrorResp(w, "missing username", http.StatusBadRequest)
+		platform.SendAPIErrorResp(w, "missing username", http.StatusBadRequest)
 		return
 	}
 
 	sessionID := r.Header.Get("X-Ispend-SessionID")
 	if handler.loginSessionManager.IsUserNotLoggedIn(sessionID, username) {
-		SendAPIErrorResp(w, "must be logged in", http.StatusUnauthorized)
+		platform.SendAPIErrorResp(w, "must be logged in", http.StatusUnauthorized)
 		return
 	}
 
 	currency := r.FormValue("currency")
 	if currency == "" {
-		SendAPIErrorResp(w, "missing/wrong currency", http.StatusBadRequest)
+		platform.SendAPIErrorResp(w, "missing/wrong currency", http.StatusBadRequest)
 		return
 	}
 	amountParam := r.FormValue("amount")
 	amount, err := strconv.ParseFloat(amountParam, 32)
 	if err != nil {
 		log.Errorf("new spending, error 9004: %s", err.Error())
-		SendAPIErrorResp(w, "missing/wrong amount", http.StatusBadRequest)
+		platform.SendAPIErrorResp(w, "missing/wrong amount", http.StatusBadRequest)
 		return
 	}
 	kindIdParam := r.FormValue("kind_id")
@@ -104,22 +108,22 @@ func (handler *SpendingHandler) handleNewSpending(w http.ResponseWriter, r *http
 	spendKind, err := handler.usersService.GetSpendKind(username, kindId)
 	if err != nil {
 		log.Errorf("new spending, error 9005: %s", err.Error())
-		SendAPIErrorResp(w, "missing/wrong spending kind ID", http.StatusBadRequest)
+		platform.SendAPIErrorResp(w, "missing/wrong spending kind ID", http.StatusBadRequest)
 		return
 	}
 
 	user, err := handler.usersService.GetUser(username)
-	if err != nil && err != ErrNotFound {
+	if err != nil && err != platform.ErrNotFound {
 		log.Errorf("new spending, error 9003: %s", err.Error())
-		SendAPIErrorResp(w, "server error 9003", http.StatusInternalServerError)
+		platform.SendAPIErrorResp(w, "server error 9003", http.StatusInternalServerError)
 		return
 	}
-	if err == ErrNotFound {
-		SendAPIErrorResp(w, "user not found", http.StatusBadRequest)
+	if err == platform.ErrNotFound {
+		platform.SendAPIErrorResp(w, "user not found", http.StatusBadRequest)
 		return
 	}
 
-	spending := Spending{
+	spending := models.Spending{
 		//ID:       GenerateRandomString(10),
 		Currency: currency,
 		Amount:   float32(amount),
@@ -132,7 +136,7 @@ func (handler *SpendingHandler) handleNewSpending(w http.ResponseWriter, r *http
 	id, err := handler.usersService.StoreSpending(username, spending)
 	if err != nil {
 		log.Errorf("new spending, error 9004: %s", err.Error())
-		SendAPIErrorResp(w, "server error 9004", http.StatusInternalServerError)
+		platform.SendAPIErrorResp(w, "server error 9004", http.StatusInternalServerError)
 		return
 	}
 
@@ -142,6 +146,6 @@ func (handler *SpendingHandler) handleNewSpending(w http.ResponseWriter, r *http
 
 	log.Tracef("new spending added: %v", spending)
 
-	apiErr := APIResponse{Status: http.StatusOK, Message: "success", IsError: false, Data: spending.ID}
-	SendAPIResp(w, apiErr)
+	apiErr := models.APIResponse{Status: http.StatusOK, Message: "success", IsError: false, Data: spending.ID}
+	platform.SendAPIResp(w, apiErr)
 }

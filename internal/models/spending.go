@@ -1,6 +1,8 @@
-package internal
+package models
 
-import "time"
+import (
+	"time"
+)
 
 type Spending struct {
 	ID        string     `json:"id"`

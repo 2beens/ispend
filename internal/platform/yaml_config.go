@@ -1,4 +1,4 @@
-package internal
+package platform
 
 import (
 	"gopkg.in/yaml.v2"

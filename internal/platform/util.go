@@ -1,4 +1,4 @@
-package internal
+package platform
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/rand"
 
+	"github.com/2beens/ispend/internal/models"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -47,16 +48,16 @@ func SendAPIResp(w io.Writer, data interface{}) {
 }
 
 func SendAPIOKResp(w io.Writer, message string) {
-	apiResp := APIResponse{Status: 200, Message: message}
+	apiResp := models.APIResponse{Status: 200, Message: message}
 	SendAPIResp(w, apiResp)
 }
 
 func SendAPIOKRespWithData(w io.Writer, message string, data interface{}) {
-	apiResp := APIResponse{Status: 200, Message: message, Data: data}
+	apiResp := models.APIResponse{Status: 200, Message: message, Data: data}
 	SendAPIResp(w, apiResp)
 }
 
 func SendAPIErrorResp(w io.Writer, message string, status int) {
-	apiErr := APIResponse{Status: status, Message: message, IsError: true}
+	apiErr := models.APIResponse{Status: status, Message: message, IsError: true}
 	SendAPIResp(w, apiErr)
 }

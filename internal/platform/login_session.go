@@ -1,4 +1,4 @@
-package internal
+package platform
 
 type LoginSession struct {
 	Username  string

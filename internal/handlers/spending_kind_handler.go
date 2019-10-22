@@ -1,17 +1,19 @@
-package internal
+package handlers
 
 import (
 	"net/http"
 
+	"github.com/2beens/ispend/internal/db"
+	"github.com/2beens/ispend/internal/platform"
 	"github.com/gorilla/mux"
 )
 
 type SpendKindHandler struct {
-	db                  SpenderDB
-	loginSessionHandler *LoginSessionManager
+	db                  db.SpenderDB
+	loginSessionHandler *platform.LoginSessionManager
 }
 
-func SpendKindHandlerSetup(router *mux.Router, db SpenderDB, loginSessionManager *LoginSessionManager) {
+func SpendKindHandlerSetup(router *mux.Router, db db.SpenderDB, loginSessionManager *platform.LoginSessionManager) {
 	handler := &SpendKindHandler{
 		db:                  db,
 		loginSessionHandler: loginSessionManager,
@@ -26,10 +28,10 @@ func (handler *SpendKindHandler) handleGetDefSpendKinds(w http.ResponseWriter, r
 
 	spKinds, err := handler.db.GetAllDefaultSpendKinds()
 	if err != nil {
-		SendAPIErrorResp(w, err.Error(), http.StatusBadRequest)
+		platform.SendAPIErrorResp(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	SendAPIOKRespWithData(w, "success", spKinds)
+	platform.SendAPIOKRespWithData(w, "success", spKinds)
 }
 
 func (handler *SpendKindHandler) handleGetSpendKinds(w http.ResponseWriter, r *http.Request) {
@@ -39,8 +41,8 @@ func (handler *SpendKindHandler) handleGetSpendKinds(w http.ResponseWriter, r *h
 	username := vars["username"]
 	spKinds, err := handler.db.GetSpendKinds(username)
 	if err != nil {
-		SendAPIErrorResp(w, err.Error(), http.StatusBadRequest)
+		platform.SendAPIErrorResp(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	SendAPIOKRespWithData(w, "success", spKinds)
+	platform.SendAPIOKRespWithData(w, "success", spKinds)
 }
