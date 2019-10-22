@@ -23,7 +23,6 @@ postgres_production:
   name: ispenddb
 #  user: ubuntu
   user: ispend
-  password: ''
   sslMode: disable
 
 # in memory DB config
@@ -32,5 +31,4 @@ postgres_dev:
   port: 5432
   name: ispenddb
   user: 2beens
-  password: ''
   sslMode: disable

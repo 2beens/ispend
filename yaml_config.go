@@ -23,20 +23,18 @@ type YamlConfig struct {
 	}
 
 	DBProd struct {
-		Host     string
-		Port     int
-		Name     string
-		User     string
-		Password string
-		SSLMode  string `yaml:"sslMode"`
+		Host    string
+		Port    int
+		Name    string
+		User    string
+		SSLMode string `yaml:"sslMode"`
 	} `yaml:"postgres_production"`
 	DBDev struct {
-		Host     string
-		Port     int
-		Name     string
-		User     string
-		Password string
-		SSLMode  string `yaml:"sslMode"`
+		Host    string
+		Port    int
+		Name    string
+		User    string
+		SSLMode string `yaml:"sslMode"`
 	} `yaml:"postgres_dev"`
 }
 
@@ -75,13 +73,6 @@ func (c *YamlConfig) GetPostgresDBUsername() string {
 		return c.DBProd.User
 	}
 	return c.DBDev.User
-}
-
-func (c *YamlConfig) GetPostgresDBPassword() string {
-	if c.PostgresEnv == PostgresProduction {
-		return c.DBProd.Password
-	}
-	return c.DBDev.Password
 }
 
 func (c *YamlConfig) GetPostgresDBSSLMode() string {

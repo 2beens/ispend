@@ -133,6 +133,11 @@ func routerSetup(logsPath string, db SpenderDB, graphiteClient *GraphiteClient, 
 
 // TODO: make a type/struct out of this file ?
 func Serve(configData []byte, port string) {
+	dbPassword := os.Getenv("ISPEND_POSTGRESS_PASSWORD")
+	if len(dbPassword) == 0 {
+		log.Warn("DB password is empty string...")
+	}
+
 	config, err := NewYamlConfig(configData)
 	if err != nil {
 		log.Fatalf("cannot read config file: %s", err.Error())
@@ -186,7 +191,7 @@ func Serve(configData []byte, port string) {
 			config.GetPostgresPort(),
 			config.GetPostgresDBName(),
 			config.GetPostgresDBUsername(),
-			config.GetPostgresDBPassword(),
+			dbPassword,
 			config.GetPostgresDBSSLMode(),
 			config.PingTimeout,
 		)
