@@ -103,6 +103,30 @@ func (db *InMemoryDB) GetSpends(username string) ([]models.Spending, error) {
 	return user.Spends, nil
 }
 
+func (db *InMemoryDB) DeleteSpending(username, spendID string) error {
+	user, err := db.GetUser(username, true)
+	if err != nil {
+		return err
+	}
+
+	indexToRemove := -1
+	for i := range user.Spends {
+		if user.Spends[i].ID == spendID {
+			indexToRemove = i
+			break
+		}
+	}
+
+	if indexToRemove < 0 {
+		return platform.ErrNotFound
+	}
+
+	// remove spending by its index
+	user.Spends = append(user.Spends[:indexToRemove], user.Spends[indexToRemove+1:]...)
+
+	return nil
+}
+
 func (db *InMemoryDB) prepareDebuggingData() *InMemoryDB {
 	skNightlife := models.SpendKind{ID: 1, Name: "nightlife"}
 	skTravel := models.SpendKind{ID: 2, Name: "travel"}

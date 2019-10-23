@@ -97,7 +97,7 @@ func (us *UsersService) AddUser(user *models.User) error {
 		user.SpendKinds[i].ID = spendKindID
 	}
 
-	// TODO:
+	// TODO: solve multithreaded issues
 	//us.mutex.Lock()
 	//defer us.mutex.Unlock()
 	us.setUserSpends(user.Username, user.Spends)
@@ -158,14 +158,60 @@ func (us *UsersService) UserExists(username string) bool {
 	return false
 }
 
-func (us *UsersService) StoreSpending(username string, spending models.Spending) (string, error) {
+func (us *UsersService) StoreSpending(user *models.User, spending models.Spending) error {
 	//us.mutex.Lock()
 	//defer us.mutex.Unlock()
-	var spends []models.Spending
-	spends, _ = us.getUserSpends(username)
+	id, err := us.db.StoreSpending(user.Username, spending)
+	if err != nil {
+		return err
+	}
+
+	spending.ID = id
+	user.Spends = append(user.Spends, spending)
+
+	//spends, _ := us.getUserSpends(user.Username)
+	//us.cache.Del(user.Username)
+	//us.setUserSpends(user.Username, append(spends, spending))
+
+	us.cache.Del(user.Username)
+	us.setUserSpends(user.Username, user.Spends)
+
+	return nil
+}
+
+func (us *UsersService) DeleteSpending(username, spendID string) error {
+	//us.mutex.Lock()
+	//defer us.mutex.Unlock()
+	err := us.db.DeleteSpending(username, spendID)
+	if err != nil {
+		return err
+	}
+
+	spends, found := us.getUserSpends(username)
+	if !found {
+		// TODO: create or something
+
+	}
+
+	indexToRemove := -1
+	for i := range spends {
+		if spends[i].ID == spendID {
+			indexToRemove = i
+			break
+		}
+	}
+
+	if indexToRemove < 0 {
+		return platform.ErrNotFound
+	}
+
+	// remove spending by its index
+	spends = append(spends[:indexToRemove], spends[indexToRemove+1:]...)
+
 	us.cache.Del(username)
-	us.setUserSpends(username, append(spends, spending))
-	return us.db.StoreSpending(username, spending)
+	us.setUserSpends(username, spends)
+
+	return nil
 }
 
 func (us *UsersService) getUserSpends(username string) ([]models.Spending, bool) {

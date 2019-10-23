@@ -55,6 +55,47 @@ function getSpends(user, callback) {
     });
 }
 
+function deleteSpend(spendID, callback) {
+    const user = getLoggedUser();
+    if (!user.isLogged) {
+        console.error('not logged in');
+    }
+    console.log('trying to delete: ' + spendID);
+
+    $.ajax({
+        url: `/spending/${user.username}/${spendID}`,
+        type: "DELETE",
+        dataType: "json",                 // expected format for response
+        contentType: "application/x-www-form-urlencoded; charset=utf-8",  // send as JSON
+        headers: {
+            'X-Ispend-SessionID': getSessionID()
+        },
+        success: function (data, textStatus, jQxhr) {
+            console.log('response: ' + JSON.stringify(data));
+            if (data && !data.isError) {
+                callback(spendID, true);
+            } else {
+                console.error('delete spending error: ' + data.message);
+                callback(spendID, false);
+            }
+        },
+        error: function (jqXhr, textStatus, errorThrown) {
+            console.log('response: ' + JSON.stringify(errorThrown));
+            callback(spendID, false);
+        },
+    });
+}
+
+function handleSpendingRemoved(spendId, isRemoved) {
+    if (!isRemoved) {
+        toastr.error('Spending not deleted!', 'Delete spending');
+        return;
+    }
+
+    document.getElementById(`spending-row-${spendId}`).remove();
+    toastr.success('Spending deleted!', 'Delete spending');
+}
+
 function postNewSpending(user, spending, callback) {
     $.ajax({
         url: "/spending",
@@ -114,25 +155,24 @@ function addSpending() {
     });
 }
 
-function deleteSpend(spendID) {
-    console.log('trying to delete: ' + spendID);
-}
-
 function addSpendKindToSpendsTable(s, kindName) {
     const spendsTable = document.getElementById('spends-table');
-    // TODO:
-    // spendsTable.innerHTML = `<tr><th>Amount [currency]</th><th>Kind</th><th></th></tr>` + spendsTable.innerHTML;
-    const newRow = document.createElement('tr');
+
     const tdAmount = document.createElement('td');
     tdAmount.appendChild(document.createTextNode(s.amount + ' ' + s.currency));
     const tdKind = document.createElement('td');
     tdKind.appendChild(document.createTextNode(kindName));
+
     const tdDelete = document.createElement('td');
     document.createElement("input");
-    tdDelete.appendChild(htmlToElement(`<input type="button" onclick="deleteSpend('${s.id}')" value="Delete">`));
+    tdDelete.appendChild(htmlToElement(`<input type="button" onclick="deleteSpend('${s.id}', handleSpendingRemoved)" value="Delete">`));
+
+    const newRow = document.createElement('tr');
+    newRow.setAttribute('id', `spending-row-${s.id}`);
     newRow.appendChild(tdAmount);
     newRow.appendChild(tdKind);
     newRow.appendChild(tdDelete);
+
     spendsTable.appendChild(newRow);
 }
 

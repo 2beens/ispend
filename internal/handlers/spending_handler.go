@@ -24,9 +24,10 @@ func SpendingHandlerSetup(router *mux.Router, usersService *services.UsersServic
 		loginSessionManager: loginSessionManager,
 	}
 
-	router.HandleFunc("", handler.handleNewSpending)
-	router.HandleFunc("/id/{id}/{username}", handler.handleGetUserSpendingByID)
-	router.HandleFunc("/all/{username}", handler.handleGetUserSpends)
+	router.HandleFunc("", handler.handleNewSpending).Methods("POST")
+	router.HandleFunc("/{username}/{spendID}", handler.handleDeleteSpending).Methods("DELETE")
+	router.HandleFunc("/id/{id}/{username}", handler.handleGetUserSpendingByID).Methods("GET")
+	router.HandleFunc("/all/{username}", handler.handleGetUserSpends).Methods("GET")
 }
 
 func (handler *SpendingHandler) handleGetUserSpendingByID(w http.ResponseWriter, r *http.Request) {
@@ -71,6 +72,38 @@ func (handler *SpendingHandler) handleGetUserSpends(w http.ResponseWriter, r *ht
 	}
 
 	platform.SendAPIOKRespWithData(w, "success", user.Spends)
+}
+
+func (handler *SpendingHandler) handleDeleteSpending(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	username := vars["username"]
+	if username == "" {
+		platform.SendAPIErrorResp(w, "missing username", http.StatusBadRequest)
+		return
+	}
+
+	sessionID := r.Header.Get("X-Ispend-SessionID")
+	if handler.loginSessionManager.IsUserNotLoggedIn(sessionID, username) {
+		platform.SendAPIErrorResp(w, "must be logged in", http.StatusUnauthorized)
+		return
+	}
+
+	spendID := vars["spendID"]
+	if spendID == "" {
+		platform.SendAPIErrorResp(w, "missing spending ID", http.StatusBadRequest)
+		return
+	}
+
+	err := handler.usersService.DeleteSpending(username, spendID)
+	if err != nil {
+		if err == platform.ErrNotFound {
+			platform.SendAPIErrorResp(w, "not found", http.StatusNotFound)
+		} else {
+			platform.SendAPIErrorResp(w, "internal server error 93215", http.StatusInternalServerError)
+		}
+	} else {
+		platform.SendAPIOKResp(w, "success")
+	}
 }
 
 func (handler *SpendingHandler) handleNewSpending(w http.ResponseWriter, r *http.Request) {
@@ -133,16 +166,12 @@ func (handler *SpendingHandler) handleNewSpending(w http.ResponseWriter, r *http
 	}
 
 	// will also add this spending to user.spends
-	id, err := handler.usersService.StoreSpending(username, spending)
+	err = handler.usersService.StoreSpending(user, spending)
 	if err != nil {
 		log.Errorf("new spending, error 9004: %s", err.Error())
 		platform.SendAPIErrorResp(w, "server error 9004", http.StatusInternalServerError)
 		return
 	}
-
-	// TODO: check is this needed; how user is taken currently
-	spending.ID = id
-	user.Spends = append(user.Spends, spending)
 
 	log.Tracef("new spending added: %v", spending)
 

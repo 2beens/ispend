@@ -20,4 +20,5 @@ type SpenderDB interface {
 
 	StoreSpending(username string, spending models.Spending) (string, error)
 	GetSpends(username string) ([]models.Spending, error)
+	DeleteSpending(username, spendID string) error
 }

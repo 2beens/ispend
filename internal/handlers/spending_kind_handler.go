@@ -19,8 +19,8 @@ func SpendKindHandlerSetup(router *mux.Router, db db.SpenderDB, loginSessionMana
 		loginSessionHandler: loginSessionManager,
 	}
 
-	router.HandleFunc("", handler.handleGetDefSpendKinds)
-	router.HandleFunc("/{username}", handler.handleGetSpendKinds)
+	router.HandleFunc("", handler.handleGetDefSpendKinds).Methods("GET")
+	router.HandleFunc("/{username}", handler.handleGetSpendKinds).Methods("GET")
 }
 
 func (handler *SpendKindHandler) handleGetDefSpendKinds(w http.ResponseWriter, r *http.Request) {

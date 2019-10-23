@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -408,6 +409,33 @@ func (pdb *PostgresDBClient) GetSpends(username string) ([]models.Spending, erro
 	}
 
 	return spends, nil
+}
+
+func (pdb *PostgresDBClient) DeleteSpending(username, spendID string) error {
+	log.Tracef("DB tries to delete spending [user: %s] [id: %s]...", username, spendID)
+	userId, err := pdb.GetUserIDByUsername(username)
+	if err != nil {
+		return errors.New("user not found")
+	}
+
+	sqlStatement := `
+		DELETE FROM spends
+		WHERE id=$1 AND user_id=$2;`
+	res, err := pdb.db.Exec(sqlStatement, spendID, userId)
+	if err != nil {
+		return err
+	}
+	count, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if count <= 0 {
+		return exec.ErrNotFound
+	}
+
+	log.Tracef("DB deleted spending [user: %s] [id: %s]", username, spendID)
+	return nil
 }
 
 func (pdb *PostgresDBClient) closeRows(rows *sql.Rows) {
