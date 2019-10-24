@@ -30,7 +30,7 @@ func getLoggingMiddleware(graphiteClient *metrics.GraphiteClient) func(next http
 			// TODO: mute path logs for now
 			userAgent := r.Header.Get("User-Agent")
 			sessionID := r.Header.Get("X-Ispend-SessionID")
-			log.Tracef(" ====> request path: [%s] [sessionID: %s] [UA: %s]", r.URL.Path, sessionID, userAgent)
+			log.Tracef(" ====> request [%s] path: [%s] [sessionID: %s] [UA: %s]", r.Method, r.URL.Path, sessionID, userAgent)
 
 			path := r.URL.Path
 			if path == "/" {
