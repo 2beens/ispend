@@ -88,18 +88,9 @@ func (us *UsersService) AddUser(user *models.User) error {
 		return err
 	}
 
-	for i := range user.SpendKinds {
-		spendKindID, err := us.db.StoreSpendKind(user.Username, &user.SpendKinds[i])
-		if err != nil {
-			log.Errorf("users service add user - add spend kind error: %s", err.Error())
-			continue
-		}
-		user.SpendKinds[i].ID = spendKindID
-	}
-
 	// TODO: solve multithreaded issues
-	//us.mutex.Lock()
-	//defer us.mutex.Unlock()
+	us.mutex.Lock()
+	defer us.mutex.Unlock()
 	us.setUserSpends(user.Username, user.Spends)
 	us.setUserSpendKinds(user.Username, user.SpendKinds)
 	us.usernames = append(us.usernames, user.Username)
