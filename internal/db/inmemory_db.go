@@ -64,6 +64,11 @@ func (db *InMemoryDB) GetSpendKinds(username string) ([]models.SpendKind, error)
 }
 
 func (db *InMemoryDB) StoreSpendKind(username string, kind *models.SpendKind) (int, error) {
+	user, err := db.GetUser(username, true)
+	if err != nil {
+		return -1, err
+	}
+	user.SpendKinds = append(user.SpendKinds, *kind)
 	return -1, nil
 }
 
