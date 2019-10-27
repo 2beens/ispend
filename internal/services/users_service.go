@@ -14,7 +14,7 @@ import (
 
 type UsersService struct {
 	db        db.SpenderDB
-	mutex     *sync.Mutex
+	mutex     *sync.RWMutex
 	cache     *ristretto.Cache
 	graphite  *metrics.GraphiteClient
 	usernames []string
@@ -33,7 +33,7 @@ func NewUsersService(db db.SpenderDB, graphite *metrics.GraphiteClient) *UsersSe
 
 	usersService := &UsersService{
 		db:        db,
-		mutex:     &sync.Mutex{},
+		mutex:     &sync.RWMutex{},
 		cache:     cache,
 		graphite:  graphite,
 		usernames: []string{},
@@ -189,8 +189,8 @@ func (us *UsersService) DeleteSpending(username, spendID string) error {
 }
 
 func (us *UsersService) getUserSpendsCache(username string) ([]models.Spending, bool) {
-	us.mutex.Lock()
-	defer us.mutex.Unlock()
+	us.mutex.RLock()
+	defer us.mutex.RUnlock()
 	if spends, found := us.cache.Get(username); found {
 		spendsSlice := spends.([]models.Spending)
 		log.Tracef("found %d spends for user %s", len(spendsSlice), username)
@@ -200,8 +200,8 @@ func (us *UsersService) getUserSpendsCache(username string) ([]models.Spending, 
 }
 
 func (us *UsersService) getUserSpendKindsCache(username string) ([]models.SpendKind, bool) {
-	us.mutex.Lock()
-	defer us.mutex.Unlock()
+	us.mutex.RLock()
+	defer us.mutex.RUnlock()
 	if spendKinds, found := us.cache.Get(username + "|sk"); found {
 		spendKindsSlice := spendKinds.([]models.SpendKind)
 		log.Tracef("found %d spend kinds for user %s", len(spendKindsSlice), username)
@@ -227,7 +227,7 @@ func (us *UsersService) setUserSpendKindsCache(username string, spendKinds []mod
 }
 
 func (us *UsersService) getCachedUsernamesSynced() []string {
-	us.mutex.Lock()
-	defer us.mutex.Unlock()
+	us.mutex.RLock()
+	defer us.mutex.RUnlock()
 	return us.usernames
 }
