@@ -86,47 +86,30 @@ func TestStoreAndRetrieveUser_Multithreaded(t *testing.T) {
 		return usersService.AddUser(user)
 	}
 
+	usersCount := 5
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func(t *testing.T) {
-		err := storeUserTestFunc("username1")
-		assert.NoError(t, err)
-		wg.Done()
-	}(t)
-	wg.Add(1)
-	go func(t *testing.T) {
-		err := storeUserTestFunc("username2")
-		assert.NoError(t, err)
-		wg.Done()
-	}(t)
-	wg.Add(1)
-	go func(t *testing.T) {
-		err := storeUserTestFunc("username3")
-		assert.NoError(t, err)
-		wg.Done()
-	}(t)
-	//wg.Add(1)
-	//go func(t *testing.T) {
-	//	allUsers, err := usersService.GetAllUsers()
-	//	assert.NoError(t, err)
-	//	assert.Len(t, allUsers, 5)
-	//	wg.Done()
-	//}(t)
+	for i := 1; i <= usersCount; i++ {
+		wg.Add(1)
+		username := "username" + string(i)
+		go func(t *testing.T) {
+			err := storeUserTestFunc(username)
+			assert.NoError(t, err)
+			wg.Done()
+		}(t)
+	}
 
 	wg.Wait()
 
 	allUsers, err := usersService.GetAllUsers()
 	assert.NoError(t, err)
-	assert.Len(t, allUsers, 5)
-	u1, err := usersService.GetUser("username1")
-	assert.NoError(t, err)
-	assert.Equal(t, "username1", u1.Username)
-	u2, err := usersService.GetUser("username2")
-	assert.NoError(t, err)
-	assert.Equal(t, "username2", u2.Username)
-	u3, err := usersService.GetUser("username3")
-	assert.NoError(t, err)
-	assert.Equal(t, "username3", u3.Username)
+	assert.Len(t, allUsers, len(allUsersBefore)+usersCount)
+
+	for i := 1; i <= usersCount; i++ {
+		username := "username" + string(i)
+		user, err := usersService.GetUser(username)
+		assert.NoError(t, err)
+		assert.Equal(t, username, user.Username)
+	}
 }
 
 func getUserServiceTest() *services.UsersService {
