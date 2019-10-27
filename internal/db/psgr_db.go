@@ -255,6 +255,25 @@ func (pdb *PostgresDBClient) StoreUser(user *models.User) (int, error) {
 	if err != nil {
 		return id, err
 	}
+
+	for i := range user.SpendKinds {
+		spendKindID, err := pdb.StoreSpendKind(user.Username, &user.SpendKinds[i])
+		if err != nil {
+			log.Errorf("postgres DB client store user - store spend kind error: %s", err)
+			continue
+		}
+		user.SpendKinds[i].ID = spendKindID
+	}
+
+	for i := range user.Spends {
+		spendId, err := pdb.StoreSpending(user.Username, user.Spends[i])
+		if err != nil {
+			log.Errorf("postgres DB client store user - store spending error: %s", err)
+			continue
+		}
+		user.Spends[i].ID = spendId
+	}
+
 	return id, nil
 }
 

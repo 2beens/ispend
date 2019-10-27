@@ -64,6 +64,11 @@ func (db *InMemoryDB) GetSpendKinds(username string) ([]models.SpendKind, error)
 }
 
 func (db *InMemoryDB) StoreSpendKind(username string, kind *models.SpendKind) (int, error) {
+	user, err := db.GetUser(username, true)
+	if err != nil {
+		return -1, err
+	}
+	user.SpendKinds = append(user.SpendKinds, *kind)
 	return -1, nil
 }
 
@@ -127,7 +132,7 @@ func (db *InMemoryDB) DeleteSpending(username, spendID string) error {
 	return nil
 }
 
-func (db *InMemoryDB) prepareDebuggingData() *InMemoryDB {
+func (db *InMemoryDB) prepareDebuggingData() {
 	skNightlife := models.SpendKind{ID: 1, Name: "nightlife"}
 	skTravel := models.SpendKind{ID: 2, Name: "travel"}
 	skFood := models.SpendKind{ID: 3, Name: "food"}
@@ -180,6 +185,4 @@ func (db *InMemoryDB) prepareDebuggingData() *InMemoryDB {
 	if err != nil {
 		log.Panic(err.Error())
 	}
-
-	return db
 }
