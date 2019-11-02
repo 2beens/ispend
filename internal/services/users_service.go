@@ -212,16 +212,16 @@ func (us *UsersService) getUserSpendKindsCache(username string) ([]models.SpendK
 
 func (us *UsersService) setUserSpendsCache(username string, spends []models.Spending) bool {
 	us.mutex.Lock()
-	defer us.mutex.Unlock()
 	stored := us.cache.Set(username, spends, 1)
+	us.mutex.Unlock()
 	log.Tracef("user service cache: storing %d spends for user [%s], stored: %t", len(spends), username, stored)
 	return stored
 }
 
 func (us *UsersService) setUserSpendKindsCache(username string, spendKinds []models.SpendKind) bool {
 	us.mutex.Lock()
-	defer us.mutex.Unlock()
 	stored := us.cache.Set(username+"|sk", spendKinds, 1)
+	us.mutex.Unlock()
 	log.Tracef("user service cache: storing %d spend kinds for user [%s], stored: %t", len(spendKinds), username, stored)
 	return stored
 }

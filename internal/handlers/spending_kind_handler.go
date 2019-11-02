@@ -26,6 +26,8 @@ func SpendKindHandlerSetup(router *mux.Router, db db.SpenderDB, loginSessionMana
 func (handler *SpendKindHandler) handleGetDefSpendKinds(w http.ResponseWriter, r *http.Request) {
 	//TODO: check logged
 
+	//TODO: don't go directly to DB
+
 	spKinds, err := handler.db.GetAllDefaultSpendKinds()
 	if err != nil {
 		platform.SendAPIErrorResp(w, err.Error(), http.StatusBadRequest)
