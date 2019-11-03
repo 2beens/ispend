@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -20,14 +21,71 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var loginSessionManager = platform.NewLoginSessionHandler()
+type Server struct {
+	loginSessionManager *platform.LoginSessionManager
+	graphiteClient      *metrics.GraphiteClient
+	dbClient            db.SpenderDB
+	config              *platform.YamlConfig
+}
 
-var dbClient db.SpenderDB
+func NewServer(configData []byte) (*Server, error) {
+	server := &Server{
+		loginSessionManager: platform.NewLoginSessionHandler(),
+	}
 
-func getLoggingMiddleware(graphiteClient *metrics.GraphiteClient) func(next http.Handler) http.Handler {
+	var err error
+	server.config, err = platform.NewYamlConfig(configData)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("cannot read config file: %s", err.Error()))
+	}
+
+	if server.config.Graphite.Enabled {
+		server.graphiteClient, err = metrics.NewGraphite(server.config.Graphite.Host, server.config.Graphite.Port)
+		if err != nil {
+			return nil, errors.New(fmt.Sprintf("cannot create graphite client: %s", err.Error()))
+		}
+		server.graphiteClient.Prefix = "ispend"
+	} else {
+		log.Debugln("using NOP graphite client")
+		server.graphiteClient = metrics.NewGraphiteNop(server.config.Graphite.Host, server.config.Graphite.Port)
+	}
+
+	dbPassword := os.Getenv("ISPEND_POSTGRESS_PASSWORD")
+	if len(dbPassword) == 0 {
+		log.Warn("DB password is empty string...")
+	}
+
+	if server.config.DBType == platform.DBTypePostgres {
+		server.dbClient = db.NewPostgresDBClient(
+			server.config.GetPostgresHost(),
+			server.config.GetPostgresPort(),
+			server.config.GetPostgresDBName(),
+			server.config.GetPostgresDBUsername(),
+			dbPassword,
+			server.config.GetPostgresDBSSLMode(),
+			server.config.PingTimeout,
+		)
+
+		err := server.dbClient.Open()
+		if err != nil {
+			log.Fatalf("cannot open PS DB connection: %s", err.Error())
+		}
+
+		log.Debugln(" > usersService: using Postgres usersService")
+	} else if server.config.DBType == platform.DBTypeInMemory {
+		server.dbClient = db.NewInMemoryDB()
+		log.Debugln(" > usersService: using in memory usersService")
+	} else {
+		return nil, errors.New(fmt.Sprintf("unknown usersService type from config: %s", server.config.DBType))
+	}
+
+	return server, nil
+}
+
+func (s *Server) getLoggingMiddleware(graphiteClient *metrics.GraphiteClient) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// TODO: mute path logs for now
+			// TODO: a method to mute path logs (config?)
 			userAgent := r.Header.Get("User-Agent")
 			sessionID := r.Header.Get("X-Ispend-SessionID")
 			log.Tracef(" ====> request [%s] path: [%s] [sessionID: %s] [UA: %s]", r.Method, r.URL.Path, sessionID, userAgent)
@@ -45,7 +103,7 @@ func getLoggingMiddleware(graphiteClient *metrics.GraphiteClient) func(next http
 	}
 }
 
-func getPanicRecoverMiddleware(graphiteClient *metrics.GraphiteClient) func(next http.Handler) http.Handler {
+func (s *Server) getPanicRecoverMiddleware(graphiteClient *metrics.GraphiteClient) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func(reqPath string) {
@@ -68,7 +126,7 @@ func getPanicRecoverMiddleware(graphiteClient *metrics.GraphiteClient) func(next
 	}
 }
 
-func routerSetup(logsPath string, db db.SpenderDB, graphiteClient *metrics.GraphiteClient, chInterrupt chan models.Signal) (r *mux.Router) {
+func (s *Server) routerSetup(logsPath string, db db.SpenderDB, graphiteClient *metrics.GraphiteClient, chInterrupt chan models.Signal) (r *mux.Router) {
 	r = mux.NewRouter()
 
 	// server static files
@@ -111,9 +169,9 @@ func routerSetup(logsPath string, db db.SpenderDB, graphiteClient *metrics.Graph
 	spendingRouter := r.PathPrefix("/spending").Subrouter()
 	spendKindRouter := r.PathPrefix("/spending/kind").Subrouter()
 	debugRouter := r.PathPrefix("/debug").Subrouter()
-	handlers.UsersHandlerSetup(usersRouter, usersService, loginSessionManager)
-	handlers.SpendingHandlerSetup(spendingRouter, usersService, loginSessionManager)
-	handlers.SpendKindHandlerSetup(spendKindRouter, db, loginSessionManager)
+	handlers.UsersHandlerSetup(usersRouter, usersService, s.loginSessionManager)
+	handlers.SpendingHandlerSetup(spendingRouter, usersService, s.loginSessionManager)
+	handlers.SpendKindHandlerSetup(spendKindRouter, db, s.loginSessionManager)
 	handlers.DebugHandlerSetup(debugRouter, viewsMaker, logsPath, "ispend.log")
 
 	// all the rest - unknown paths
@@ -131,44 +189,18 @@ func routerSetup(logsPath string, db db.SpenderDB, graphiteClient *metrics.Graph
 		}
 	})
 
-	r.Use(getLoggingMiddleware(graphiteClient))
-	r.Use(getPanicRecoverMiddleware(graphiteClient))
+	r.Use(s.getLoggingMiddleware(graphiteClient))
+	r.Use(s.getPanicRecoverMiddleware(graphiteClient))
 
 	return r
 }
 
-// TODO: make a type/struct out of this file ?
-func Serve(configData []byte, port string) {
-	dbPassword := os.Getenv("ISPEND_POSTGRESS_PASSWORD")
-	if len(dbPassword) == 0 {
-		log.Warn("DB password is empty string...")
-	}
+func (s *Server) Serve(port string) {
+	log.Debugf("using usersService: \t\t[%s] with env [%s]", s.config.DBType, s.config.PostgresEnv)
+	log.Debugf("config - usersService prod: \t%s:%d", s.config.DBProd.Host, s.config.DBProd.Port)
+	log.Debugf("config - usersService dev: \t%s:%d", s.config.DBDev.Host, s.config.DBDev.Port)
 
-	config, err := platform.NewYamlConfig(configData)
-	if err != nil {
-		log.Fatalf("cannot read config file: %s", err.Error())
-		return
-	}
-
-	log.Debugf("using usersService: \t\t[%s] with env [%s]", config.DBType, config.PostgresEnv)
-	log.Debugf("config - usersService prod: \t%s:%d", config.DBProd.Host, config.DBProd.Port)
-	log.Debugf("config - usersService dev: \t%s:%d", config.DBDev.Host, config.DBDev.Port)
-
-	var graphiteClient *metrics.GraphiteClient
-	if config.Graphite.Enabled {
-		graphiteClient, err = metrics.NewGraphite(config.Graphite.Host, config.Graphite.Port)
-		if err != nil {
-			panicMessage := fmt.Sprintf("cannot create graphite client: %s", err.Error())
-			log.Error(panicMessage)
-			panic(panicMessage)
-		}
-		graphiteClient.Prefix = "ispend"
-	} else {
-		log.Debugln("using NOP graphite client")
-		graphiteClient = metrics.NewGraphiteNop(config.Graphite.Host, config.Graphite.Port)
-	}
-
-	if graphiteClient.SimpleSend("stats.server.started", "1") {
+	if s.graphiteClient.SimpleSend("stats.server.started", "1") {
 		log.Traceln("stats.server.started metric successfully sent to graphite")
 	} else {
 		log.Errorf("failed to send stats.server.started metric to graphite")
@@ -190,31 +222,7 @@ func Serve(configData []byte, port string) {
 		log.Debugln(http.ListenAndServe(pprofhost+":"+pprofport, nil))
 	}()
 
-	var router *mux.Router
-	if config.DBType == platform.DBTypePostgres {
-		dbClient = db.NewPostgresDBClient(
-			config.GetPostgresHost(),
-			config.GetPostgresPort(),
-			config.GetPostgresDBName(),
-			config.GetPostgresDBUsername(),
-			dbPassword,
-			config.GetPostgresDBSSLMode(),
-			config.PingTimeout,
-		)
-		err = dbClient.Open()
-		if err != nil {
-			log.Fatalf("cannot open PS DB connection: %s", err.Error())
-		}
-
-		router = routerSetup(config.LogsPath, dbClient, graphiteClient, chInterrupt)
-		log.Debugln(" > usersService: using Postgres usersService")
-	} else if config.DBType == platform.DBTypeInMemory {
-		dbClient = db.NewInMemoryDB()
-		router = routerSetup(config.LogsPath, dbClient, graphiteClient, chInterrupt)
-		log.Debugln(" > usersService: using in memory usersService")
-	} else {
-		log.Fatalf("unknown usersService type from config: %s", config.DBType)
-	}
+	router := s.routerSetup(s.config.LogsPath, s.dbClient, s.graphiteClient, chInterrupt)
 
 	ipAndPort := fmt.Sprintf("%s:%s", platform.IPAddress, port)
 
@@ -236,10 +244,10 @@ func Serve(configData []byte, port string) {
 	case <-chOsInterrupt:
 		log.Warn("os interrupt received ...")
 	}
-	gracefulShutdown(httpServer, dbClient)
+	s.gracefulShutdown(httpServer, s.dbClient)
 }
 
-func gracefulShutdown(httpServer *http.Server, dbClient db.SpenderDB) {
+func (s *Server) gracefulShutdown(httpServer *http.Server, dbClient db.SpenderDB) {
 	log.Debug("graceful shutdown initiated ...")
 
 	err := dbClient.Close()

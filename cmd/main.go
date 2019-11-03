@@ -35,7 +35,12 @@ func main() {
 		log.Fatalf("cannot open/read yaml conf file: %s", err.Error())
 	}
 
-	internal.Serve(yamlConfData, *port)
+	server, err := internal.NewServer(yamlConfData)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	server.Serve(*port)
 }
 
 func readYamlConfig() ([]byte, error) {
