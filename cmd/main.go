@@ -13,7 +13,7 @@ import (
 func main() {
 	displayHelp := flag.Bool("h", false, "display info/help message")
 	port := flag.String("port", "", "server port")
-	logFileName := flag.String("logfile", "", "log file used to store server logs")
+	logFile := flag.String("logfile", "", "log file used to store server logs")
 	logLevel := flag.String("loglvl", "", "log level")
 	flag.Parse()
 
@@ -28,14 +28,14 @@ func main() {
 		return
 	}
 
-	loggingSetup(*logFileName, *logLevel)
+	loggingSetup(*logFile, *logLevel)
 
 	yamlConfData, err := readYamlConfig()
 	if err != nil {
 		log.Fatalf("cannot open/read yaml conf file: %s", err.Error())
 	}
 
-	server, err := internal.NewServer(yamlConfData)
+	server, err := internal.NewServer(yamlConfData, *logFile)
 	if err != nil {
 		log.Fatal(err)
 	}

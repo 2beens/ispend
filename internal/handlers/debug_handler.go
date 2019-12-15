@@ -4,8 +4,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/2beens/ispend/internal/platform"
 	"github.com/gorilla/mux"
@@ -13,20 +11,14 @@ import (
 )
 
 type DebugHandler struct {
-	logFileName string
-	logFilePath string
-	viewsMaker  *platform.ViewsMaker
+	viewsMaker *platform.ViewsMaker
+	logFile    string
 }
 
-func DebugHandlerSetup(router *mux.Router, viewsMaker *platform.ViewsMaker, logFilePath string, logFileName string) {
-	if !strings.HasSuffix(logFilePath, "/") {
-		logFilePath += "/"
-	}
-
+func DebugHandlerSetup(router *mux.Router, viewsMaker *platform.ViewsMaker, logFile string) {
 	handler := &DebugHandler{
-		viewsMaker:  viewsMaker,
-		logFilePath: logFilePath,
-		logFileName: logFileName,
+		viewsMaker: viewsMaker,
+		logFile:    logFile,
 	}
 
 	router.HandleFunc("", handler.handleGetDebugPage)
@@ -38,8 +30,7 @@ func (handler *DebugHandler) handleGetDebugPage(w http.ResponseWriter, r *http.R
 }
 
 func (handler *DebugHandler) handleGetLogs(w http.ResponseWriter, r *http.Request) {
-	logFilePath := filepath.FromSlash(handler.logFilePath + handler.logFileName)
-	file, err := os.Open(logFilePath)
+	file, err := os.Open(handler.logFile)
 	if err != nil {
 		platform.SendAPIErrorResp(w, "server error 10001", http.StatusInternalServerError)
 		log.Errorf("error [%s]: %s", r.URL.Path, err.Error())

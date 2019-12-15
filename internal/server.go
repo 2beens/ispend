@@ -26,11 +26,13 @@ type Server struct {
 	graphiteClient      *metrics.GraphiteClient
 	dbClient            db.SpenderDB
 	config              *platform.YamlConfig
+	logFile             string
 }
 
-func NewServer(configData []byte) (*Server, error) {
+func NewServer(configData []byte, logFile string) (*Server, error) {
 	server := &Server{
 		loginSessionManager: platform.NewLoginSessionHandler(),
+		logFile:             logFile,
 	}
 
 	var err error
@@ -126,7 +128,7 @@ func (s *Server) getPanicRecoverMiddleware(graphiteClient *metrics.GraphiteClien
 	}
 }
 
-func (s *Server) routerSetup(logsPath string, db db.SpenderDB, graphiteClient *metrics.GraphiteClient, chInterrupt chan models.Signal) (r *mux.Router) {
+func (s *Server) routerSetup(db db.SpenderDB, graphiteClient *metrics.GraphiteClient, chInterrupt chan models.Signal) (r *mux.Router) {
 	r = mux.NewRouter()
 
 	// server static files
@@ -172,7 +174,7 @@ func (s *Server) routerSetup(logsPath string, db db.SpenderDB, graphiteClient *m
 	handlers.UsersHandlerSetup(usersRouter, usersService, s.loginSessionManager)
 	handlers.SpendingHandlerSetup(spendingRouter, usersService, s.loginSessionManager)
 	handlers.SpendKindHandlerSetup(spendKindRouter, db, s.loginSessionManager)
-	handlers.DebugHandlerSetup(debugRouter, viewsMaker, logsPath, "ispend.log")
+	handlers.DebugHandlerSetup(debugRouter, viewsMaker, s.logFile)
 
 	// all the rest - unknown paths
 	r.HandleFunc("/{unknown}", func(w http.ResponseWriter, r *http.Request) {
@@ -222,7 +224,7 @@ func (s *Server) Serve(port string) {
 		log.Debugln(http.ListenAndServe(pprofhost+":"+pprofport, nil))
 	}()
 
-	router := s.routerSetup(s.config.LogsPath, s.dbClient, s.graphiteClient, chInterrupt)
+	router := s.routerSetup(s.dbClient, s.graphiteClient, chInterrupt)
 
 	ipAndPort := fmt.Sprintf("%s:%s", platform.IPAddress, port)
 

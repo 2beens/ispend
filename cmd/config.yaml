@@ -1,14 +1,10 @@
 # mem | postgres
-dbtype: postgres
+dbtype: mem
 
 # production | dev
 postgres_env: dev
 
 db_ping_timeout: 10 # in seconds
-
-# logs dev:    /Users/2beens/Documents/projects/ispend
-# logs prod:   /root/ispend
-logs_path: /Users/2beens/Documents/projects/ispend
 
 graphite:
   enabled: true
