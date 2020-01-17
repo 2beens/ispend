@@ -193,6 +193,7 @@ func (s *Server) routerSetup(db db.SpenderDB, graphiteClient *metrics.GraphiteCl
 			platform.SendAPIErrorResp(w, "unknown path: "+unknownPath, http.StatusNotFound)
 		} else {
 			//TODO: navigate to some error page instead of silent home redirect ?
+			log.Debugf("unknown path [%s] - redirecting to index", unknownPath)
 			http.Redirect(w, r, "/", http.StatusPermanentRedirect)
 		}
 	})
