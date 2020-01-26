@@ -165,12 +165,6 @@ func (s *Server) routerSetup(db db.SpenderDB, graphiteClient *metrics.GraphiteCl
 		platform.SendAPIOKResp(w, "Goodbye cruel world...")
 	})
 
-	// adjust related. remove later
-	r.HandleFunc("/testredirect", func(w http.ResponseWriter, r *http.Request) {
-		log.Debug("received adjust test redirect")
-		http.Redirect(w, r, "market://details?id=com.adjust.insights&referrer=adjust_reftag%3DcsO64zUkefSuV%26utm_source%3Dkristian_deeplink_test", http.StatusFound)
-	})
-
 	usersService := services.NewUsersService(db, graphiteClient)
 
 	usersRouter := r.PathPrefix("/users").Subrouter()
