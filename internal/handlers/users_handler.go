@@ -27,7 +27,7 @@ func UsersHandlerSetup(router *mux.Router, usersService *services.UsersService, 
 	router.HandleFunc("", handler.handleNewUser).Methods("POST")
 	router.HandleFunc("/me/{username}/{cookie}", handler.handleGetMe).Methods("GET")
 	router.HandleFunc("/login", handler.handleLogin).Methods("POST")
-	router.HandleFunc("/login/check", handler.handleCheckSessionID).Methods("GET")
+	router.HandleFunc("/login/check", handler.handleCheckSessionID).Methods("POST")
 	router.HandleFunc("/logout", handler.handleLogout).Methods("POST")
 	router.HandleFunc("/{username}", handler.handleGetUser).Methods("GET")
 }

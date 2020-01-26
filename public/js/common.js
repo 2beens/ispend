@@ -11,6 +11,12 @@ function getLoggedUser() {
     return {username: username, sessionId: sessionId, isLogged: isLogged};
 }
 
+function clearLoginData() {
+    localStorage.setItem("sessionId", "");
+    localStorage.setItem("username", "");
+    refreshLoggedUserInfo();
+}
+
 function getSessionID() {
     return localStorage.getItem("sessionId");
 }

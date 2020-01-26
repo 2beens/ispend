@@ -60,13 +60,12 @@ function checkSessionOK() {
 					return;
 				}
 				console.warn('session not OK');
-				localStorage.setItem("sessionId", "");
-				localStorage.setItem("username", "");
+				clearLoginData();
 				toastr.info('Must login!!');
-				refreshLoggedUserInfo();
 			}
 		},
 		error: function (jqXhr, textStatus, errorThrown) {
+			clearLoginData();
 			console.log('check session error, response: ' + JSON.stringify(errorThrown));
 		},
 	});
