@@ -11,6 +11,9 @@ import (
 	"strings"
 	"time"
 
+	// profiling
+	_ "net/http/pprof"
+
 	"github.com/2beens/ispend/internal/db"
 	"github.com/2beens/ispend/internal/handlers"
 	"github.com/2beens/ispend/internal/metrics"
