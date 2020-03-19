@@ -168,6 +168,12 @@ func (s *Server) routerSetup(db db.SpenderDB, graphiteClient *metrics.GraphiteCl
 		platform.SendAPIOKResp(w, "Goodbye cruel world...")
 	})
 
+	//// work related testing
+	r.HandleFunc("/various-test-links", func(w http.ResponseWriter, r *http.Request) {
+		viewsMaker.RenderView(w, "various-test-links", nil)
+	})
+	/////////////////////////////////////////////
+
 	usersService := services.NewUsersService(db, graphiteClient)
 
 	usersRouter := r.PathPrefix("/users").Subrouter()
