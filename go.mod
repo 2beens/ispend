@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/dgraph-io/ristretto v0.0.0-20190930161113-c0fc2b91c465
 	github.com/gorilla/mux v1.7.3
+	github.com/gorilla/websocket v1.4.2
 	github.com/lib/pq v1.2.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.3.0

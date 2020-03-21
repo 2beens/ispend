@@ -19,8 +19,11 @@ import (
 	"github.com/2beens/ispend/internal/metrics"
 	"github.com/2beens/ispend/internal/models"
 	"github.com/2beens/ispend/internal/platform"
+	"github.com/2beens/ispend/internal/platform/simplechat"
 	"github.com/2beens/ispend/internal/services"
+
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -143,6 +146,9 @@ func (s *Server) routerSetup(db db.SpenderDB, graphiteClient *metrics.GraphiteCl
 		log.Fatal(err.Error())
 	}
 
+	simpleChatHub := simplechat.NewHub()
+	go simpleChatHub.Run()
+
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		viewsMaker.RenderIndex(w)
 	})
@@ -157,6 +163,14 @@ func (s *Server) routerSetup(db db.SpenderDB, graphiteClient *metrics.GraphiteCl
 	})
 	r.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
 		viewsMaker.RenderView(w, "register", nil)
+	})
+	r.HandleFunc("/simple-chat", func(w http.ResponseWriter, r *http.Request) {
+		viewsMaker.RenderView(w, "simple-chat", nil)
+	})
+
+	// simple chat web socket
+	r.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		serveSimpleChatWS(simpleChatHub, w, r)
 	})
 
 	r.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
@@ -251,6 +265,28 @@ func (s *Server) Serve(port string) {
 		log.Warn("os interrupt received ...")
 	}
 	s.gracefulShutdown(httpServer, s.dbClient)
+}
+
+// serveSimpleChatWS handles websocket requests from the peer.
+func serveSimpleChatWS(hub *simplechat.SimpleChatHub, w http.ResponseWriter, r *http.Request) {
+	var webSocketUpgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+
+	conn, err := webSocketUpgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	client := simplechat.NewChatClient(hub, conn)
+
+	hub.RegisterClient(client)
+
+	// Allow collection of memory referenced by the caller by doing all work in new goroutines.
+	go client.WritePump()
+	go client.ReadPump()
 }
 
 func (s *Server) gracefulShutdown(httpServer *http.Server, dbClient db.SpenderDB) {

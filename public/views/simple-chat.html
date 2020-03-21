@@ -1,0 +1,26 @@
+{{define "content"}}
+    <style type="text/css">
+        #log {
+            background: lightblue;
+            border-radius: 5px;
+            margin: 0;
+            padding: 0.5em 0.5em 0.5em 0.5em;
+            overflow: auto;
+            min-height: 500px;
+        }
+
+        #form {
+            padding: 0 0.5em 0 0.5em;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+    </style>
+
+    <script src="public/js/simple-chat.js"></script>
+
+    <form id="form">
+        <label for="msg">Message: </label><input autocomplete="off" type="text" id="msg" size="64" autofocus />
+        <input type="submit" value="Send" />
+    </form>
+    <div id="log"></div>
+{{end}}
