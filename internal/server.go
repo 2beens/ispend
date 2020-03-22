@@ -90,10 +90,11 @@ func NewServer(configData []byte, logFile string) (*Server, error) {
 func (s *Server) getLoggingMiddleware(graphiteClient *metrics.GraphiteClient) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// TODO: a method to mute path logs (config?)
-			userAgent := r.Header.Get("User-Agent")
-			sessionID := r.Header.Get("X-Ispend-SessionID")
-			log.Tracef(" ====> request [%s] path: [%s] [sessionID: %s] [UA: %s]", r.Method, r.URL.Path, sessionID, userAgent)
+			if !s.config.MuteRequestPathLogs {
+				userAgent := r.Header.Get("User-Agent")
+				sessionID := r.Header.Get("X-Ispend-SessionID")
+				log.Tracef(" ====> request [%s] path: [%s] [sessionID: %s] [UA: %s]", r.Method, r.URL.Path, sessionID, userAgent)
+			}
 
 			path := r.URL.Path
 			if path == "/" {

@@ -5,19 +5,18 @@ dbtype: mem
 postgres_env: dev
 
 db_ping_timeout: 10 # in seconds
+mute_request_path_logs: true
 
 graphite:
-  enabled: true
+  enabled: false
   host: grafana.serjspends.de
   port: 2003
 
 # postgres DB config
 postgres_production:
-#  host: db.serjspends.de
   host: ec2-3-15-33-157.us-east-2.compute.amazonaws.com
   port: 5432
   name: ispenddb
-#  user: ubuntu
   user: ispend
   sslMode: disable
 

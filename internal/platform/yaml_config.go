@@ -10,8 +10,9 @@ const PostgresProduction = "production"
 const PostgresDev = "dev"
 
 type YamlConfig struct {
-	PingTimeout int    `yaml:"db_ping_timeout"`
-	DBType      string `yaml:"dbtype"`
+	MuteRequestPathLogs bool   `yaml:"mute_request_path_logs"`
+	PingTimeout         int    `yaml:"db_ping_timeout"`
+	DBType              string `yaml:"dbtype"`
 	// TODO: should have one general env variable
 	PostgresEnv string `yaml:"postgres_env"`
 
