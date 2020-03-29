@@ -11,6 +11,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// defaultTimeout is the default number of seconds that we're willing to wait
+// before forcing the connection establishment to fail
+const defaultTimeout = 5
+
+var ErrorGraphiteClientNotConnected = errors.New("graphite client not connected")
+
 // GraphiteClient is a struct that defines the relevant properties of a graphite connection
 type GraphiteClient struct {
 	Host       string
@@ -18,14 +24,62 @@ type GraphiteClient struct {
 	Protocol   string
 	Timeout    time.Duration
 	Prefix     string
-	conn       net.Conn
-	nop        bool
 	DisableLog bool
+
+	conn net.Conn
+	nop  bool
+
+	isConnected bool
 }
 
-// defaultTimeout is the default number of seconds that we're willing to wait
-// before forcing the connection establishment to fail
-const defaultTimeout = 5
+// NewGraphiteNop is a factory method that returns a GraphiteClient struct but will
+// not actually try to send any packets to a remote host and, instead, will just
+// log. This is useful if you want to use GraphiteClient in a project but don't want
+// to make GraphiteClient a requirement for the project.
+func NewGraphiteNop(host string, port int) *GraphiteClient {
+	graphiteNop, _ := NewGraphiteClient("nop", host, port, "")
+	return graphiteNop
+}
+
+func NewGraphiteClient(protocol string, host string, port int, prefix string) (*GraphiteClient, error) {
+	var graphite *GraphiteClient
+
+	switch protocol {
+	case "tcp":
+		graphite = &GraphiteClient{Host: host, Port: port, Protocol: "tcp", Prefix: prefix}
+	case "udp":
+		graphite = &GraphiteClient{Host: host, Port: port, Protocol: "udp", Prefix: prefix}
+	case "nop":
+		graphite = &GraphiteClient{Host: host, Port: port, nop: true}
+	default:
+		return nil, errors.New("graphite client error: unknown protocol")
+	}
+
+	err := graphite.Connect()
+	if err != nil {
+		graphite.isConnected = false
+		return graphite, err
+	}
+
+	graphite.isConnected = true
+
+	return graphite, nil
+}
+
+// NewGraphite is a factory method that's used to create a new GraphiteClient
+func NewGraphite(host string, port int) (*GraphiteClient, error) {
+	return NewGraphiteClient("tcp", host, port, "")
+}
+
+// NewGraphiteWithMetricPrefix is a factory method that's used to create a new GraphiteClient with a metric prefix
+func NewGraphiteWithMetricPrefix(host string, port int, prefix string) (*GraphiteClient, error) {
+	return NewGraphiteClient("tcp", host, port, prefix)
+}
+
+// When a UDP connection to GraphiteClient is required
+func NewGraphiteUDP(host string, port int) (*GraphiteClient, error) {
+	return NewGraphiteClient("udp", host, port, "")
+}
 
 // IsNop is a getter for *graphite.GraphiteClient.nop
 func (gc *GraphiteClient) IsNop() bool {
@@ -110,6 +164,10 @@ func (gc *GraphiteClient) sendMetrics(metrics []Metric) error {
 		return nil
 	}
 
+	if !gc.isConnected {
+		return ErrorGraphiteClientNotConnected
+	}
+
 	zeroedMetric := Metric{} // ignore uninitialized metrics
 	buf := bytes.NewBufferString("")
 	for _, metric := range metrics {
@@ -160,50 +218,4 @@ func (gc *GraphiteClient) SimpleSend(stat string, value string) bool {
 func (gc *GraphiteClient) SimpleSendInt(stat string, value int) bool {
 	valueStr := strconv.Itoa(value)
 	return gc.SimpleSend(stat, valueStr)
-}
-
-// NewGraphite is a factory method that's used to create a new GraphiteClient
-func NewGraphite(host string, port int) (*GraphiteClient, error) {
-	return GraphiteFactory("tcp", host, port, "")
-}
-
-// NewGraphiteWithMetricPrefix is a factory method that's used to create a new GraphiteClient with a metric prefix
-func NewGraphiteWithMetricPrefix(host string, port int, prefix string) (*GraphiteClient, error) {
-	return GraphiteFactory("tcp", host, port, prefix)
-}
-
-// When a UDP connection to GraphiteClient is required
-func NewGraphiteUDP(host string, port int) (*GraphiteClient, error) {
-	return GraphiteFactory("udp", host, port, "")
-}
-
-// NewGraphiteNop is a factory method that returns a GraphiteClient struct but will
-// not actually try to send any packets to a remote host and, instead, will just
-// log. This is useful if you want to use GraphiteClient in a project but don't want
-// to make GraphiteClient a requirement for the project.
-func NewGraphiteNop(host string, port int) *GraphiteClient {
-	graphiteNop, _ := GraphiteFactory("nop", host, port, "")
-	return graphiteNop
-}
-
-func GraphiteFactory(protocol string, host string, port int, prefix string) (*GraphiteClient, error) {
-	var graphite *GraphiteClient
-
-	switch protocol {
-	case "tcp":
-		graphite = &GraphiteClient{Host: host, Port: port, Protocol: "tcp", Prefix: prefix}
-	case "udp":
-		graphite = &GraphiteClient{Host: host, Port: port, Protocol: "udp", Prefix: prefix}
-	case "nop":
-		graphite = &GraphiteClient{Host: host, Port: port, nop: true}
-	default:
-		return nil, errors.New("graphite client error: unknown protocol")
-	}
-
-	err := graphite.Connect()
-	if err != nil {
-		return nil, err
-	}
-
-	return graphite, nil
 }

@@ -6,6 +6,12 @@ add new spending via curl
 NOTE: fix data races!!!
 	- go test ./... -v -race
 
+metrics:
+ - graphana:
+    http://grafana.serjspends.de:3000/
+ - graphite:
+    http://grafana.serjspends.de/
+
 google analytics:
 https://analytics.google.com/analytics/web/?authuser=0#/report-home/a150685389w213386767p204466108
 

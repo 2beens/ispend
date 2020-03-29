@@ -8,7 +8,7 @@ db_ping_timeout: 10 # in seconds
 mute_request_path_logs: true
 
 graphite:
-  enabled: false
+  enabled: true
   host: grafana.serjspends.de
   port: 2003
 

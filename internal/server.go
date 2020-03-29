@@ -47,7 +47,7 @@ func NewServer(configData []byte, logFile string) (*Server, error) {
 	if server.config.Graphite.Enabled {
 		server.graphiteClient, err = metrics.NewGraphite(server.config.Graphite.Host, server.config.Graphite.Port)
 		if err != nil {
-			return nil, errors.New(fmt.Sprintf("cannot create graphite client: %s", err.Error()))
+			log.Errorf("create graphite client error: %s", err.Error())
 		}
 		server.graphiteClient.Prefix = "ispend"
 	} else {
